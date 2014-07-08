@@ -1,0 +1,25 @@
+SOURCES=itc_model.c itc_sim.c
+
+all: itc_sim_simple itc_sim_sk itc_sim_ian itc_sim_jump itc_sim_hybrid
+itc_sim_simple:
+	@CC@ -shared -std=c99 @CFLAGS@ @LIBS@ $(SOURCES) library_2par.c energies_simple.c -o itc_sim_simple.o
+
+itc_sim_sk:
+	@CC@ -shared -std=c99 @CFLAGS@ @LIBS@ $(SOURCES) library_6par.c energies_sk.c -o itc_sim_sk.o
+
+itc_sim_ian:
+	@CC@ -shared -std=c99 @CFLAGS@ @LIBS@ $(SOURCES) library_6par.c energies_ian.c -o itc_sim_ian.o
+
+itc_sim_jump:
+	@CC@ -shared -std=c99 @CFLAGS@ @LIBS@ $(SOURCES) library_6par.c energies_jump.c -o itc_sim_jump.o
+
+itc_sim_hybrid:
+	@CC@ -shared -std=c99 @CFLAGS@ @LIBS@ $(SOURCES) library_8par.c energies_hybrid.c -o itc_sim_hybrid.o
+
+clean:
+	rm itc_sim_simple.o
+	rm itc_sim_sk.o
+	rm itc_sim_ian.o
+	rm itc_sim_jump.o
+
+

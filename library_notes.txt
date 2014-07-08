@@ -1,0 +1,30 @@
+Description of available C shared libraries (DLL) for itcsim.
+
+To compile, you should just be able to run "./configure" followed by "make"
+If you've made changes or added a library, re-run autoconf by using "autoreconf -i"
+
+Note that in addition to the delta G parameters, each model also has delta H (enthalpies) parameters for each configuration.
+
+itc_sim_sk
+	As described by Saroff and Kiefer (1997)
+	Parameters:
+	dG	delta G of binding
+	a	scaling factor for coupling to an unoccupied site
+	b	coupling to an occupied site
+
+itc_sim_ian
+	Statistical thermodynamics model described by Ian Kleckner in his thesis
+	Parameters:
+	dG	delta G of binding to a site with no bound neighbors
+	a	scaling factor when site has one occupied neighbor
+	b	scaling factor when site has two occupied neighbors
+
+
+itc_sim_hybrid
+	A combination of the SK model and Ian's, where a different scaling factor is used if both neighboring sites are occupied.
+	Parameters:
+	dG
+	a	scaling factor for coupling to an unoccupied site
+	b	scaling factor to only a single occupied site
+	c	scaling factor when both neighboring sites are occupied
+	
