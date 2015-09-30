@@ -1,3 +1,9 @@
-from itc_classes	import ITCSim
-from fit_classes	import ITCFit
-from grid_classes	import ITCGrid
+__version__ = "2.0.0"
+__all__ = ['itc_sim','itc_fit','itc_calc','itc_grid','manipulator']
+
+from itc_sim	import ITCSim
+from itc_fit	import ITCFit
+from itc_calc	import ITCCalc
+from itc_grid	import ITCGrid
+
+from manipulator	import Manipulator
