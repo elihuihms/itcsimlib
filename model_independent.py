@@ -1,10 +1,8 @@
 from math		import exp,pow,sqrt
+import scipy.optimize as optimize
 
-from thermo		import *
 from itc_model	import ITCModel
-from itc_calc	import ITCCalc
-
-from ctypes		import c_double
+from thermo		import *
 
 class OneMode(ITCModel):
 	"""
@@ -14,27 +12,25 @@ class OneMode(ITCModel):
 	def __init__(self):
 		ITCModel.__init__(self)
 
-		self.add_param( 'n',	'n',	description='n_sites', bounds=[0,None], default=1.0 )
-		self.add_param( 'dG',	'dG',	description='Free energy change upon binding' )
-		self.add_param( 'dH',	'dH',	description='Enthalpy change upon binding' )
-		self.add_param( 'dCp',	'dCp',	description='Heat capacity change' )
+		self.add_component('Macromolecule')
+		self.add_component('Ligand')
 
-	def get_params(self, T, T_ref):
-		return [
+		self.add_parameter( 'n',	'n',	description='n_sites', bounds=[0,None], default=1.0 )
+		self.add_parameter( 'dG',	'dG',	description='Free energy change upon binding' )
+		self.add_parameter( 'dH',	'dH',	description='Enthalpy change upon binding' )
+		self.add_parameter( 'dCp',	'dCp',	description='Heat capacity change' )
+
+	def Q(self,T0,T,concentrations):	
+		n1,Ka,dH = (
 			self.params['n'],
-			1.0/Kd_from_dG( dG_vant_Hoff( self.params['dG'], self.params['dH'], self.params['dCp'], T, T_ref ), T),
-			dH_vant_Hoff( self.params['dH'], self.params['dCp'], T, T_ref )
-		]
+			1.0/Kd_from_dG( dG_vant_Hoff( self.params['dG'], self.params['dH'], self.params['dCp'], T, T0 ), T),
+			dH_vant_Hoff( self.params['dH'], self.params['dCp'], T, T0 )
+		)
 
-	def get_worker(self,in_queue,out_queue):
-		def _calc(x,T,P,L,Q,params):
-			n1,Ka,dH = params
-
-			""" binding polynomial from Microcal's "ITC Data Analysis In Origin, Rev. F-4, p.g. 106, eq. 9 """
-			for i in xrange(x):
-				Q[i] = ((n1*dH)/2.0)*(1.0 +(L[i]/(n1*P[i])) +(1.0/(n1*Ka*P[i])) -sqrt( pow(1 +(L[i]/(n1*P[i])) +(1.0/(n1*Ka*P[i])), 2.0) -((4.0*L[i])/(n1*P[i]))))
-
-		return ITCCalc(_calc,in_queue,out_queue)
+		Q = [0.0]*len(concentrations)
+		for i,c in enumerate(concentrations):
+			Q[i] = ((n1*dH)/2.0)*(1.0 +(c['Ligand']/(n1*c['Macromolecule'])) +(1.0/(n1*Ka*c['Macromolecule'])) -sqrt( pow(1 +(c['Ligand']/(n1*c['Macromolecule'])) +(1.0/(n1*Ka*c['Macromolecule'])), 2.0) -((4.0*c['Ligand'])/(n1*c['Macromolecule']))))
+		return Q
 
 class NModes(ITCModel):
 	"""
@@ -45,63 +41,34 @@ class NModes(ITCModel):
 		ITCModel.__init__(self)
 		self.nmodes = nmodes
 
-		for i in xrange(self.nmodes):
-			self.add_param( "n%i"%(i),		'n',	description='n_sites', bounds=[0,None], default=1.0 )
-			self.add_param( "dG%i"%(i),		'dG',	description='Free energy change upon binding' )
-			self.add_param( "dH%i"%(i),		'dH',	description='Enthalpy change upon binding' )
-			self.add_param( "dCp%i"%(i),	'dCp',	description='Heat capacity change' )
+		self.add_component('Macromolecule')
+		self.add_component('Ligand')
 
-	def get_format(self, T, T_ref):
-		ret = [None]*(self.nmodes*3)
+		for i in xrange(self.nmodes):
+			self.add_parameter( "n%i"%(i),		'n',	description='n_sites', bounds=[0,None], default=1.0 )
+			self.add_parameter( "dG%i"%(i),		'dG',	description='Free energy change upon binding' )
+			self.add_parameter( "dH%i"%(i),		'dH',	description='Enthalpy change upon binding' )
+			self.add_parameter( "dCp%i"%(i),	'dCp',	description='Heat capacity change' )
+
+	def Q(self,T0,T,concentrations):
+		n,p = len(concentrations),[None]*(self.nmodes*3)
 		for i in xrange(self.nmodes):
 			n,dG,dH,dCp	= 'n'+str(i),'dG'+str(i),'dH'+str(i),'dCp'+str(i)
-			ret[i*3 +0]	= self.params[n]
-			ret[i*3 +1]	= 1.0/Kd_from_dG( dG_vant_Hoff( self.params[dG], self.params[dH], self.params[dCp], T, T_ref ), T)
-			ret[i*3 +2]	= dH_vant_Hoff( self.params[dH], self.params[dCp], T, T_ref )
-		return ret
+			p[i*3 +0]	= self.params[n]
+			p[i*3 +1]	= 1.0/Kd_from_dG( dG_vant_Hoff( self.params[dG], self.params[dH], self.params[dCp], T, T0 ), T)
+			p[i*3 +2]	= dH_vant_Hoff( self.params[dH], self.params[dCp], T, T0 )
 
-	def get_worker(self,in_queue,out_queue):
-		def _calc(x,T,P,L,Q,params):
-			import scipy.optimize as optimize
+		def _get_free(Lfree,Ltot,Ptot):
+			Lbound = 0.0
+			for i in xrange(self.nmodes):
+				n,Ka,dH = p[i*3:i*3+3]
+				Lbound += n * Ptot * (Ka*Lfree)/(Ka*Lfree +1)
+			return Ltot -Lbound -Lfree
 
-			def _get_free(Lfree,Ltot,Ptot,params):
-				Lbound = 0
-				for i in xrange(len(params)/3):
-					n,Ka,dH = params[i*3:i*3+3]
-					Lbound += n * Ptot * (Ka*Lfree)/(Ka*Lfree +1)
-
-				return Ltot -Lbound -Lfree
-
-			for j in xrange(x):
-				Lfree = optimize.brentq( _get_free, 0, L[j], args=(L[j],P[j],params) )
-				for i in xrange(len(params)/3):
-					n,Ka,dH = params[i*3:i*3+3]
-					Q[j] +=( n * dH * (Ka*Lfree)/(Ka*Lfree +1) )
-
-		return ITCCalc(_calc,in_queue,out_queue)
-
-#class OneModeC(ITCModel):
-#	"""
-#	A four-parameter phenomological model describing binding to a single site type
-#	"""
-#
-#	def __init__(self):
-#		ITCModel.__init__(self)
-#
-#		self.add_param( 'n',	'n',	description='n_sites', bounds=[0,None], default=1.0 )
-#		self.add_param( 'dG',	'dG',	description='Free energy change upon binding' )
-#		self.add_param( 'dH',	'dH',	description='Enthalpy change upon binding' )
-#		self.add_param( 'dCp',	'dCp',	description='Heat capacity change' )
-#
-#	def get_params(self, T, T_ref):
-#		return [
-#			c_double(self.get_param('n')),
-#			c_double(dG_vant_Hoff( self.get_param('dG'), self.get_param('dH'), self.get_param('dCp'), T, T_ref )),
-#			c_double(dH_vant_Hoff( self.get_param('dH'), self.get_param('dCp'), T, T_ref ))
-#		]
-#
-#	def get_worker(self,in_queue,out_queue):
-#		return ITCCalcDLL('./itcsimlib/itc_sim_n_identical.so',[],in_queue,out_queue)
-
-
-
+		Q = [0.0]*n
+		for j,c in enumerate(concentrations):
+			Lfree = optimize.brentq( _get_free, 0.0, c['Ligand'], args=(c['Ligand'],c['Macromolecule'],p) )
+			for i in xrange(len(self.params)/3):
+				n,Ka,dH = self.params[i*3:i*3+3]
+				Q[j] +=( n * dH * (Ka*Lfree)/(Ka*Lfree +1) )
+		return Q

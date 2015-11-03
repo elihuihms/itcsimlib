@@ -1,54 +1,44 @@
-import os
 from multiprocessing	import cpu_count,Queue
-from scipy				import array,dtype,genfromtxt
 
-from itc_experiment		import ITCExperiment
+from itc_experiment		import *
+from itc_calc			import ITCCalc
+from thermo				import *
+from utilities			import *
 
 class ITCSim:
 	"""
 	Contains all the necessary data and methods to collect experiments
 	"""
 
-	def __init__(self,model,T_ref=298.15,verbose=False,threads=None):
-		self.model	= model
-		self.T_ref	= T_ref # reference temperature
-		self.dG		= []
-		self.dH		= []
-		self.dCp	= []
-		self.size	= 0 # number of experiments
+	def __init__(self,T0=298.15,units='J',verbose=False,threads=None):
+		self.T0	= T0 # reference temperature
+		assert units in thermo._units
+		self.units = units
+		self.size = 0 # number of experiments
 		self.experiments = []
+		self.chisq = {}
 		self.verbose = verbose
-		self.chisq	= 0.0
 
+		self.model = None
 		self.in_Queue,self.out_Queue = Queue(),Queue()
 
 		if threads==None or threads<1:
 			threads = cpu_count()
-
 		self.workers = [None] * threads
-		for i in xrange(threads):
-			self.workers[i] = self.model.get_worker( self.in_Queue, self.out_Queue )
-			self.workers[i].start()
-
-	def __del__(self):
-
-		# send term signal to workers
-		for i in xrange(len(self.workers)):
-			self.in_Queue.put( None )
-
-		# make sure they're all shut down
-		for i in xrange(len(self.workers)):
-			if self.workers[i] != None:
-				self.workers[i].join()
-			self.workers[i] = None
 
 	def __str__(self):
 		ret = "\nITCSim \"%s\"\n"%(self.__module__)
-		ret+= "Per-model chisq values:\n"
+		ret+= "Current model information:\n"
+		ret+= "\n".join( ["\t%s"%s for s in str(self.model).split("\n")] )
+		ret+= "\nPer-model chisq values:\n"
 		for E in self.get_experiments():
-			ret+= "%s	%f\n"%(E.title,E.chisq)
+			if E.title in self.chisq:
+				ret+= "\t%s	%f\n"%(E.title,self.chisq[E.title])
+			else:
+				ret+= "\t%s	N/A\n"%(E.title)
 		return ret
 
+	# getters
 	def get_experiment(self, index=0):
 		return self.experiments[index]
 
@@ -61,104 +51,123 @@ class ITCSim:
 				return E
 		return None
 
-	def get_experiments_by_temperature(self, temperature):
-		ret = []
-		for E in self.experiments:
-			if E.T == temperature:
-				ret.append(E)
-		return ret
+	def get_model(self):
+		return self.model
 
-	def set_params(self, dG=None, dH=None, dCp=None ):
-		"""
-		Set the various initial parameters for the specified model
-		"""
+	def get_model_param(self,name):
+		return self.model.get_param(name)
+	
+	def get_model_params(self):
+		return self.model.get_params()
+		
+	def get_chisq(self):
+		return sum([self.chisq[t] for t in self.chisq])/self.size
 
-		if len(self.dG) > 0 and dG != None:
-			assert( len(self.dG) == len(dG) )
-		if len(self.dG) > 0 and dH != None:
-			assert( len(self.dG) == len(dH) )
-		if len(self.dG) > 0 and dCp != None:
-			assert( len(self.dG) == len(dCp) )
+	# setters
+	def set_model(self, model):
+		if not (None in self.workers):
+			self.stop_workers()
 
-		# note, dG & dH values are always at ref temp!
-		if dG != None:
-			self.dG		=	dG
-		if dH != None:
-			self.dH		=	dH
-		if dCp != None:
-			self.dCp	=	dCp
+		self.model = model
+		self.model.set_units(self.units)
+		for i in xrange(len(self.workers)):
+			self.workers[i] = ITCCalc( self.T0, self.model, self.in_Queue, self.out_Queue )
+			self.workers[i].start()
 
-	def add_experiment( self, title, T, V0, M0, L0, DQ, I_vol, reverse=False, skip=[], dil_Q=0.0 ):
-		"""
-		Add ITC data, along with the necessary experimental and instrument parameters necessary to generate fits
-		Calculates the active concentration of protein and ligand at each point
-		"""
+	def set_model_params(self, units=None, *args, **kwargs ):
+		if units == None:
+			units = self.units
+		self.model.set_params( units=units, *args, **kwargs )
+		
+	def set_model_param(self, param, value, units=None):
+		if units == None:
+			units = self.units
+		self.model.set_param( param, value, units=units)
 
-		for E in self.experiments:
-			if E.title == title:
-				print "Experiment \"%s\" already present in this simulation" % (title)
+	###
+	def info(self):
+		print str(self)
 
-		self.experiments.append(
-			ITCExperiment(
-				title	= title,
-				T		= T,
-				V0		= V0,
-				M0		= M0,
-				L0		= L0,
-				dQ_exp	= array(DQ,dtype('d')),
-				I_vol	= array(I_vol,dtype('d')),
-				reverse	= reverse,
-				skip	= skip,
-				dil_Q	= dil_Q
-			)
-		)
+	def done(self):
+		self.stop_workers()
 
+	def stop_workers(self):
+		# send term signal to workers
+		for i in xrange(len(self.workers)):
+			self.in_Queue.put( None )
+
+		# make sure they're all shut down
+		for i in xrange(len(self.workers)):
+			if self.workers[i] != None:
+				self.workers[i].join()
+			self.workers[i] = None
+
+	def add_experiment( self, experiment ):
+		self.experiments.append( experiment )
 		self.size +=1
+	
+	def add_experiment_file( self, file, **kwargs ):
+		tmp,data = read_itcsimlib_exp(file)
+		# overwrite any file-obtained info with explicit values
+		info = tmp.copy()
+		info.update(kwargs)
+		if len(data) == 2:
+			self.add_experiment( ITCExperiment(injections=data[0],dQ=data[1],units=self.units,**info) )
+		elif len(data) == 3:
+			self.add_experiment( ITCExperiment(injections=data[0],dQ=data[1],ddQ=data[2],units=self.units,**info) )
+		return self.get_experiment(self.size-1)
+	
+	def add_experiment_synthetic( self, injections, *args, **kwargs ):
+		self.add_experiment( ITCExperimentSynthetic(injections=injections,units=self.units,*args,**kwargs) )
+		return self.experiments[self.size -1]
+		
+	def remove_experiment( self, experiment ):
+		self.experiments.remove(experiment)
+		if experiment.title in self.chisq:
+			del self.chisq[experiment.title]
+		self.size -=1		
 
-	def load_file( self, path, T, V0, M0, L0, reverse=False, skip=[], dil_Q=0.0, title=None):
-		"""
-		Read experimental ITC data from a file containing two columns: the observed deltaH and the injection volumes
-		"""
-
-		(DQ,I_vol) = genfromtxt( path, unpack=True, usecols=(0,1) )
-		if title==None:
-			title = os.path.splitext(os.path.basename(path))[0]
-		self.add_experiment( title, T, V0, M0, L0, DQ, I_vol, reverse, skip, dil_Q)
-
-	def make_plots(self,indices=None,hardcopy=False,hardcopydir='.',hardcopyprefix='',hardcopytype='png'):
+	def make_plots(self,indices=None,**kwargs):
 		"""
 		Generate plots for all experimental datasets
 		"""
 		for (i,E) in enumerate(self.experiments):
 			if(indices==None) or (i in indices):
-				E.show_plot(hardcopy,hardcopydir,hardcopyprefix,hardcopytype)
+				E.make_plot(**kwargs)
 
-	def export_data(self,dir='.',indices=None,prefix='export_'):
+	def export_data(self,indices=None,**kwargs):
 		for (i,E) in enumerate(self.experiments):
 			if(indices==None) or (i in indices):
-				E.export_data(prefix+E.title+".txt")
-
-	def make_fits( self, writeback=True ):
+				E.export_data(**kwargs)
+				
+	def write_params(self, **kwargs):
+		write_params_to_file( file, params=self.model.get_params(), units=self.units, **kwargs )
+			
+	def run( self, experiments=None, writeback=True ):
 		"""
-		Using the current model parameters, generates fits for all experimental datasets, returns the normalized chi-square goodness of fit
+		Using the current parameters, generates fits for either the specified experiments or all experimental datasets, returns the normalized/average chi-square goodness of fit
 		"""
-
-		for E in self.get_experiments():
-			self.in_Queue.put( (self.model.get_format( E.T, self.T_ref ),E) )
+		
+		if experiments:
+			for E in experiments:
+				self.in_Queue.put( (self.model.get_params(),E) )
+		else:
+			for E in self.get_experiments():
+				self.in_Queue.put( (self.model.get_params(),E) )
 
 		queue_contents = []
 		while len(queue_contents) < self.size:
 			queue_contents.append( self.out_Queue.get(True) )
 
-		self.chisq = 0.0
 		for title,data in queue_contents:
-
 			# in the case of an exception during model execution, title will be None
 			if title == None:
-				raise data
+				print "\nFatal error during model evalution: %s"%(data)
+				self.done()
+				return None
 			else:
-				self.chisq += self.get_experiment_by_title(title).calc_chisq(data,writeback)/self.size
+				self.chisq[title] = self.get_experiment_by_title(title).get_chisq(data,writeback)
 
-		return self.chisq
+		return self.get_chisq()
 
 

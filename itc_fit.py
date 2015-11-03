@@ -39,7 +39,7 @@ class ITCFit:
 		self.chisq = 0.0
 
 		# obtain model-defined boundaries to enforce during fitting
-		self.bounds = dict( (name,self.model.get_param_bounds(name)) for name in self.model.params.keys() )
+		self.bounds = dict( (name,self.model.get_param_bounds(name)) for name in self.model.get_param_names() )
 
 	def add_bounds(self, param, low=None, high=None):
 		"""Add low and/or high boundaries for a specified parameter.
@@ -53,7 +53,7 @@ class ITCFit:
 			None
 		"""
 
-		assert param in self.model.params.keys()
+		assert param in self.model.get_param_names()
 		self.bounds[param] = (low,high)
 
 	def optimize(self, params=[], callback=None ):
@@ -76,28 +76,28 @@ class ITCFit:
 				return
 
 		# starting parameter values to restore later
-		start_params = self.model.params.values()[:]
+		start_params = self.sim.get_model_params().copy()
 
-		# initial param guesses
-		x0 = [self.sim.model.params[p] for p in params]
+		# initial param guesses as list
+		x0 = [start_params[p] for p in start_params]
 
 		# the target objective function to minimize
 		def _target(x,sim):
 			for i,p in enumerate(params):
-				sim.model.params[p] = x[i]
+				sim.set_model_param(p, x[i])
 
-			# this is pretty hackish - if we violate a boundary, return a scaled well function based on the last iteration point
+			# this is hackish - if we violate a boundary, return a scaled well function based on the last iteration point
 			m = self._check_bounds()
 			if m > 0:
-				return sim.chisq * (1+m)
+				return sim.chisq() * (1+m)
 
-			return sim.make_fits(writeback=False)
+			return sim.run(writeback=False)
 
 		# optimize parameters
 		opt = self._fitter( _target, x0, callback )
 
 		# restore initial parameter values
-		self.model.set_params(*start_params)
+		sim.set_model_params(*start_params)
 
 		# return the optimized parameters and the chisquare value
 		return OrderedDict( (p,opt[0][i]) for i,p in enumerate(params) ), opt[1]
@@ -120,10 +120,10 @@ class ITCFit:
 			print "\nTask: Estimating uncertainty intervals for %s using %i bootstraps\n"%(",".join(params),bootstraps)
 
 		# initialize to make sure we have fit data to use
-		self.sim.make_fits()
+		self.sim.run()
 
 		# starting parameter values to restore later
-		start_params = self.model.params.values()[:]
+		start_params = self.sim.get_model_params().copy()
 
 		# store the original experimental and fit data for restoration later
 		dQ_exp,dQ_fit = [],[]
@@ -144,10 +144,10 @@ class ITCFit:
 
 			# randomize starting point by user-specifiable amount
 			for p in params:
-				self.model.params[p] *= (1+(2*random()-0.5)*randomize)
+				self.sim.set_model_param(p,self.sim_get_model_param(p) * (1+(2*random()-0.5)*randomize))
 
 			# replace the experimental data points with the synthetic data
-			for (j,E) in enumerate(self.sim.get_experiments()):
+			for j,E in enumerate(self.sim.get_experiments()):
 				E.dQ_exp = _make_bootstrap(E.npoints,dQ_exp[j],dQ_fit[j])
 
 			# re-optimize the parameters using the new, synthetic datasets
@@ -164,7 +164,7 @@ class ITCFit:
 				write_params_to_file(logfile,optimized,header=(i==0),extra="\t%.3f"%(chisq))
 
 			# restore initial parameter values for the next iteration
-			self.model.set_params(*start_params)
+			self.sim.set_model_params(*start_params)
 
 		# restore original experimental data and fit for the experiments
 		for i,E in enumerate(self.sim.get_experiments()):
@@ -176,7 +176,7 @@ class ITCFit:
 
 	def _check_bounds(self):
 		ret = 0
-		for k,v in self.model.params.iteritems():
+		for k,v in self.sim.get_model_params().iteritems():
 			if self.bounds[k][0] != None and v < self.bounds[k][0]:
 				ret += (self.bounds[k][0] - v)
 				if self.verbose:

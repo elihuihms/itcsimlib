@@ -1,6 +1,29 @@
 from math 	import exp,log,sqrt
 
 _R = 8.3144621 # J/(K*mol)
+_units = ('J','kJ','cal','kcal')
+
+def convert_to_J(units,value):
+	assert units in _units
+	if units == 'J':
+		return value
+	elif units == 'kJ':
+		return value*1000.0
+	elif units == 'cal':
+		return J_from_cal(value)
+	elif units == 'kcal':
+		return J_from_cal(value)*1000.0
+
+def convert_from_J(units,value):
+	assert units in _units
+	if units == 'J':
+		return value
+	elif units == 'kJ':
+		return value/1000.0
+	elif units == 'cal':
+		return cal_from_J(value)
+	elif units == 'kcal':
+		return cal_from_J(value)/1000.0	
 
 def dG_from_Kd( Kd, T ):
 	return _R*T*log(Kd)
@@ -105,16 +128,3 @@ def dG_vant_Hoff_dH( dG0, dH, dCp, T, T0 ):
 
 	return dH - dCp*(T-T0) - (T/T0)*( dH - dCp*(T-T0) - dG0 ) + dCp*( (T-T0) - T*log(T/T0) )
 
-def dQ_calc( Q, V0, I_vol ):
-	"""
-	Eqn. 10 from Microcal's "ITC Data Analysis in Origin"
-	"""
-	dQ = [0.0]*len(Q)
-
-	for i in xrange(0,len(Q)):
-		if(i==0):
-			dQ[i] = Q[i] + ( (I_vol[i]/V0)*((Q[i]-0.0000)/2) )
-		else:
-			dQ[i] = Q[i] + ( (I_vol[i]/V0)*((Q[i]+Q[i-1])/2) ) - Q[i-1]
-
-	return dQ
