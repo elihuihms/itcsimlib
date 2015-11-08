@@ -293,8 +293,9 @@ class ITCExperimentSynthetic(ITCExperimentBase):
 			else:
 				self.dQ_exp = [numpy.random.normal(self.dQ_fit[i],self.noise) for i in xrange(self.npoints)]
 				
-			self.dQ_fit, self.initialized = None, True
+			self.initialized = True
 			ret = ITCExperimentBase.get_chisq(self, *args, **kwargs)
+			self.dQ_fit = None
 			
 		if self.noise == 0:
 			self.ddQ = [0.0]*self.npoints

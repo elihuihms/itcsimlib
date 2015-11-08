@@ -7,14 +7,13 @@ from thermo		import *
 
 class TRAP_DLL_Model(ITCModel):
 	
-	def __init__(self,nsites,circular):
+	def __init__(self):
 		ITCModel.__init__(self)
 		
-		self.nsites = nsites
-		self.circular = circular
+		self.nsites,self.circular = 11,1
 		
-		self.add_component('TRAP',description='A macromolecule with %i binding sites'%(self.nsites))
-		self.add_component('Trp',description='')
+		self.add_component('TRAP',description='An %i-site circular lattice of tryptophan binding sites'%(self.nsites))
+		self.add_component('Trp',description='A molecule of tryptophan')
 	
 	def loadDLL(self,lib):
 		self.lib = cdll.LoadLibrary(os.path.join( os.path.dirname(__file__), lib ))
@@ -46,8 +45,8 @@ class SK(TRAP_DLL_Model):
 	A nine-parameter model describing the Saroff-Kiefer model
 	"""
 
-	def __init__(self,nsites=11,circular=True):
-		TRAP_DLL_Model.__init__(self,nsites,circular)
+	def __init__(self):
+		TRAP_DLL_Model.__init__(self)
 
 		self.add_parameter( 'dG0',	'dG',	description='Intrinsic free energy change upon binding' )
 		self.add_parameter( 'dGa',	'dG',	description='Free energy of coupling to an unoccupied site' )
@@ -78,8 +77,8 @@ class IK(TRAP_DLL_Model):
 	A nine-parameter model describing the Kleckner model
 	"""
 
-	def __init__(self,nsites=11,circular=True):
-		TRAP_DLL_Model.__init__(self,nsites,circular)
+	def __init__(self):
+		TRAP_DLL_Model.__init__(self)
 
 		self.add_parameter( 'dGX',	'dG',	description='Free energy change upon binding to a site flanked by two unoccupied' )
 		self.add_parameter( 'dGY',	'dG',	description='Free energy change upon binding to a site flanked by one occupied' )
@@ -110,8 +109,8 @@ class IKi(TRAP_DLL_Model):
 	A nine-parameter model describing the Kleckner model with an intrinsic binding coeff
 	"""
 
-	def __init__(self,nsites=11,circular=True):
-		TRAP_DLL_Model.__init__(self,nsites,circular)
+	def __init__(self):
+		TRAP_DLL_Model.__init__(self)
 
 		self.add_parameter( 'dG0',	'dG',	description='Free energy change upon binding to a site flanked by two unoccupied' )
 		self.add_parameter( 'dGoe',	'dG',	description='Additional free energy change upon binding to a site flanked by one occupied' )

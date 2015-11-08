@@ -27,10 +27,11 @@ class ITCSim:
 		self.workers = [None] * threads
 
 	def __str__(self):
-		ret = "\nITCSim \"%s\"\n"%(self.__module__)
+		from __init__			import __version__
+		ret = "\nITCSim itcsimlib v.%s\n"%(__version__)
 		ret+= "Current model information:\n"
 		ret+= "\n".join( ["\t%s"%s for s in str(self.model).split("\n")] )
-		ret+= "\nPer-model chisq values:\n"
+		ret+= "\n\nPer-model chisq values:\n"
 		for E in self.get_experiments():
 			if E.title in self.chisq:
 				ret+= "\t%s	%f\n"%(E.title,self.chisq[E.title])
@@ -169,5 +170,4 @@ class ITCSim:
 				self.chisq[title] = self.get_experiment_by_title(title).get_chisq(data,writeback)
 
 		return self.get_chisq()
-
 

@@ -73,17 +73,20 @@ class ITCModel():
 	def __str__(self):
 		types = {'n':"Stoichiometry",'k':"Rate constant",'dG':"Free energy",'dH':"Enthalpy",'dS':"Entropy",'dCp':"Heat capacity"}
 		units = {'n':"sites",'k':"1/s or 1/s/mol",'dG':"%s/mol"%self.units,'dH':"%s/mol"%self.units,'dS':"%s/mol/K"%self.units,'dCp':"%s/mol/K"%self.units}
-		ret = "\nITCModel \"%s\" Description: %s\n"%(self.__module__, self.__doc__)
+		ret = "\nITCModel \"%s\"\nDescription:\n%s\n"%(self.__module__, self.__doc__)
 		ret+= "\nComponents:\n"
-		for c in self.components:
-			ret+="%s\t%s\n"%(c,self._component_meta[c])
-		ret+= "\nParam     Type                Value               Description\n"
-		for k in self.params:
+		ret+= "Index	Name	Description\n"
+		for i,c in enumerate(self.components):
+			ret+="%i)\t%s\t%s\n"%(i+1,c,self._component_meta[c])
+		ret+= "\nParameters:\n"
+		ret+= "Index	Param     Type                Value               Description\n"
+		for i,k in enumerate(self.params):
 			if self._param_meta[k][5]:
 				value = convert_from_J(self.units,self.get_param(k))
 			else:
 				value = self.get_param(k)
-			ret+="%s%s%s%s\n" % (
+			ret+="%i)\t%s%s%s%s\n" % (
+				i+1,
 				k.ljust(10),
 				types[self.get_param_type(k)].ljust(20),
 				(("%.3f"%(value))+" "+units[self.get_param_type(k)]).ljust(20),
