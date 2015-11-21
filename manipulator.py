@@ -1,4 +1,5 @@
 from math import fabs,sqrt,ceil
+
 import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -9,21 +10,29 @@ from Tkinter	import *
 
 class Manipulator(Tk):
 
-	def __init__(self, model, sim, experiments, params, callback=None, title="Value Manipulator"):
+	def __init__(self, sim, experiments=None, params=None, callback=None, title="Value Manipulator"):
 		Tk.__init__(self)
+		self.protocol('WM_DELETE_WINDOW', self.close)
 
 		self.visualizer = Visualizer(self, title="Plot Window")
 
-		self.model	= model
-		self.sim	= sim
-		self.experiments	= experiments
-		self.params	= params
-		self.callback	= callback
+		self.sim = sim
+		self.callback = callback
 		self.title(title)
+		
+		if experiments:
+			self.experiments = experiments
+		else:
+			self.experiments = self.sim.get_experiments()
+		if params:
+			self.params = params
+		else:
+			self.params = self.sim.get_model_params()
 
 		for e in self.experiments:
 			self.visualizer.add_experiment(e)
-		self.sim.make_fits()
+			
+		self.sim.run(self.experiments)
 		self.visualizer.make_figures()
 
 		self.size = 0
@@ -32,9 +41,10 @@ class Manipulator(Tk):
 
 		grid_counter = 0
 		for p in self.params:
-			self.sliders.append( Scale(self, from_=-1*fabs(model.params[p]), to=2*fabs(model.params[p]), label=p, length=500, orient=HORIZONTAL) )
+			value = self.sim.get_model_param(p)
+			self.sliders.append( Scale(self, from_=-1*fabs(value), to=2*fabs(value), label=p, length=500, orient=HORIZONTAL) )
 			self.sliders[-1].grid( row=self.size, column=1 )
-			self.sliders[-1].set( model.params[p] )
+			self.sliders[-1].set( value )
 
 			self.entries.append( Entry(self) )
 			self.entries[-1].grid( row=self.size, column=3 )
@@ -58,10 +68,10 @@ class Manipulator(Tk):
 		if self.callback != None:
 			self.callback([float(self.entries[i].get()) for i in xrange(self.size)])
 		else:
-			for i,v in enumerate(self.params):
-				self.model.params[v] = float(self.entries[i].get())
+			for i,p in enumerate(self.params):
+				self.sim.set_model_param(p,float(self.entries[i].get()))
 
-		self.sim.make_fits()
+		self.sim.run(self.experiments)
 		self.visualizer.update_figures()
 
 	def slide_update(self, event):
@@ -74,8 +84,6 @@ class Manipulator(Tk):
 
 			event.widget.set(value)
 			self._update_figures()
-
-		return
 
 	def slide_rescale(self,event):
 
@@ -90,8 +98,6 @@ class Manipulator(Tk):
 				event.widget.config(to		=value)
 				event.widget.config(from_	=value-scale)
 
-		return
-
 	def entry_update(self, event):
 
 		index = self.entries.index(event.widget)
@@ -102,16 +108,19 @@ class Manipulator(Tk):
 		self.sliders[index].set(value)
 
 		self._update_figures()
-
-		return
+		
+	def close(self):
+		self.destroy()
+		self.quit()
 
 class Visualizer(Toplevel):
 
 	def __init__(self,master,title):
 		Toplevel.__init__(self,master)
+		self.master = master
+
 		self.title(title)
 		self.resizable(True,True)
-
 		self.fig = pyplot.figure()
 		pyplot.ion()
 
@@ -133,14 +142,14 @@ class Visualizer(Toplevel):
 		self.axs,self.exp,self.fit = [],[],[]
 		for i,e in enumerate(self.experiments):
 			self.axs.append( self.fig.add_subplot(size,size,i+1) )
-			self.exp.append( self.axs[-1].scatter(e.ratios,e.dQ_exp,c='#000000') )
-			self.fit.append( self.axs[-1].plot(e.ratios,e.dQ_fit,c='#FF0000')[0] )
+			ratios = [ e.Concentrations[i][e.syringeRef]/e.Concentrations[i][e.cellRef] for i in xrange(e.npoints) if i not in e.skip ]
+			self.exp.append( self.axs[-1].scatter(ratios,e.dQ_exp,c='#000000') )
+			self.fit.append( self.axs[-1].plot(ratios,e.dQ_fit,c='#FF0000')[0] )
 		self.canvas.draw()
 
 	def update_figures(self):
 		for i,e in enumerate(self.experiments):
 			self.fit[i].set_ydata(e.dQ_fit)
 		self.canvas.draw()
-
 
 

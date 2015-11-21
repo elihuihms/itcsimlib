@@ -5,7 +5,7 @@ class ITCGrid:
 
 	Attributes:
 		fit (ITCFit): The fitter used for optimization.
-		model (ITCModel): The model used for fitting.
+		sim (ITCSim): The simulator (and associated model) used for fitting.
 		callback (function): A function to be called with the current parameter vector after optimization at each grid point.
 		verbose (boolean): Whether or not to print additional information to the console.
 	"""
@@ -22,7 +22,7 @@ class ITCGrid:
 		"""
 
 		self.fit	= fit
-		self.model	= self.fit.sim.model
+		self.sim	= self.fit.sim
 		self.verbose	= verbose
 		self.callback	= callback
 
@@ -48,7 +48,8 @@ class ITCGrid:
 			None
 		"""
 
-		assert param in self.model.params.keys()
+		assert param in self.sim.get_model_params().keys()
+		
 		if logspace:
 			self._grid_pts.append( numpy.logspace(start,stop,steps) )
 		else:
@@ -67,7 +68,8 @@ class ITCGrid:
 			None
 		"""
 
-		assert param in self.model.params.keys()
+		assert param in self.sim.get_model_params().keys()
+		
 		self._grid_pts.append(points)
 		self._grid_size *= len(self._grid_pts[-1])
 		self._grid_order.append(param)
@@ -84,7 +86,7 @@ class ITCGrid:
 
 		return gridpt
 
-	def optimize(self, params=[], callback=None ):
+	def optimize(self, params=[], callback=None, **kwargs ):
 		"""Optimize the model at each point on the defined grid.
 
 		Arguments:
@@ -101,7 +103,7 @@ class ITCGrid:
 			print "\nTask: Optimizing %s parameters over %i grid points of %s parameters\n"%(",".join(params),self._grid_size,",".join(self._grid_order))
 
 		# archive original model params
-		initial_params = self.model.params.values()[:]
+		start_params = self.sim.get_model_params().copy()
 
 		# initialize storage
 		self._grid_results = [[]]*self._grid_size
@@ -114,13 +116,13 @@ class ITCGrid:
 			point = self._get_point(i)
 
 			# reset starting model params
-			self.model.set_params( *initial_params )
+			self.sim.set_model_params( **start_params )
 
 			for (j,p) in enumerate(self._grid_order):
-				self.model.params[p] = point[j]
+				self.sim.set_model_param(p,point[j])
 
 			try:
-				self._grid_results[i] = (point,)+self.fit.optimize( params )
+				self._grid_results[i] = (point,)+self.fit.optimize( params=params, **kwargs )
 			except Exception as e:
 				print "Error: caught exception at grid point index %i: %s"%(i,str(e))
 				continue
@@ -129,7 +131,7 @@ class ITCGrid:
 				self.callback( *self._grid_results[i] )
 
 		# restore original model params
-		self.model.set_params( *initial_params )
+		self.sim.set_model_params( **start_params )
 
 		return self._grid_results
 

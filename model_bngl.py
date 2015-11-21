@@ -25,16 +25,16 @@ class BNGL(ITCModel):
 		self.parse_network_xml()
 		self.stop()
 
-		for p in self.model_parameters:
-			if p[:2] == 'E_': # crude check for energy terms
-				self.add_parameter( "dG_%s"%(p[2:]),	'dG',	default=self.model_parameters[p],description='' )
+		for p in self.bngl_parameters:
+			if p[:2] == 'E_': # crude check for energy terms, is there a better way to do this?
+				self.add_parameter( "dG_%s"%(p[2:]),	'dG',	default=self.bngl_parameters[p],description='' )
 				self.add_parameter( "dH_%s"%(p[2:]),	'dH',	description='' )
 				self.add_parameter( "dCp_%s"%(p[2:]),	'dCp',	description='' )
 			elif p[:2] == 'k_': # crude check for rate terms
-				self.add_parameter( p,	'k',	default=self.model_parameters[p],description='' )
+				self.add_parameter( p,	'k',	default=self.bngl_parameters[p],description='' )
 				
 	def start(self):
-		# set up the BNGL environment
+		# set up the BNG environment
 		self.workdir = tempfile.mkdtemp()
 		self.basepath = os.path.join(self.workdir,os.path.splitext(os.path.basename(self.model))[0])
 		
@@ -82,12 +82,12 @@ class BNGL(ITCModel):
 		def mktag(s):
 			return "%s%s"%(namespace,s)
 
-		self.model_parameters = {}
+		self.bngl_parameters = {}
 		for p in model.find(mktag("ListOfParameters")):
 			if p.attrib['type'] == 'Constant':
-				self.model_parameters[ p.attrib['id'] ] = float(p.attrib['value'])
+				self.bngl_parameters[ p.attrib['id'] ] = float(p.attrib['value'])
 			else:
-				self.model_parameters[ p.attrib['id'] ] = p.attrib['value']
+				self.bngl_parameters[ p.attrib['id'] ] = p.attrib['value']
 			
 		for m in model.find(mktag("ListOfMoleculeTypes")):
 			tmp = [c.attrib['id'] for c in m.find(mktag("ListOfComponentTypes"))]
@@ -117,7 +117,7 @@ class BNGL(ITCModel):
 		h.close()
 		return ret
 		
-	def Q(self,T_ref,T,concentrations,steptime=1E3,stepcount=1):			
+	def Q(self,T_ref,T,concentrations,steptime=1E3,steppoints=1):			
 		self.send_bng("action resetConcentrations()")
 		
 		dH = {}
@@ -131,10 +131,10 @@ class BNGL(ITCModel):
 				
 		enthalpies,prev_concentrations = {},{}
 		for name in self.model_species:
-			enthalpies[name] = sum( eval(e,self.model_parameters) for e in self.model_species[s]['energy_expressions'] )				
+			enthalpies[name] = sum( eval(e,self.bngl_parameters) for e in self.model_species[s]['energy_expressions'] )				
 			prev_concentrations[s] = 0.0,0.0 # total conc,free conc
 		
-		heat,heatc = [0.0]*(len(concentrations)*stepcount),0
+		Q,counter = [0.0]*(len(concentrations)*steppoints),0
 		for i,concs in enumerate(concentrations):
 			
 			for name,value in concs.iteritems():
@@ -143,21 +143,20 @@ class BNGL(ITCModel):
 				#increase total conc
 				prev_concentrations[name][0]+=value
 			
-			self.send_bng("action simulate({method=>\"ode\",t_start=0,t_end=>%i,t_steps=>%i})"%(steptime,stepcount))
+			self.send_bng("action simulate({method=>\"ode\",t_start=0,t_end=>%i,t_steps=>%i})"%(steptime,steppoints))
 			timecourse = self.parse_cdat()
 			
 			for j,name in enumerate(self.model_species):
 			
 				# increment the heat content in the cell from the enthalpy of each component
-				for k in xrange(stepcount):
-					heat[heatc+k] += timecourse[k][j] * enthalpies[name]
+				for k in xrange(steppoints):
+					Q[counter+k] += timecourse[k][j] * enthalpies[name]
 				
 				#set final free conc
 				prev_concentrations[name][1] = timecourse[k][j]
 			
-			heatc+=stepcount
-		
-		return heat
+			counter+=steppoints
+		return Q
 				
 			
 			

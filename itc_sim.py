@@ -3,6 +3,7 @@ from multiprocessing	import cpu_count,Queue
 from itc_experiment		import *
 from itc_calc			import ITCCalc
 from thermo				import *
+from thermo				import _units
 from utilities			import *
 
 class ITCSim:
@@ -55,11 +56,11 @@ class ITCSim:
 	def get_model(self):
 		return self.model
 
-	def get_model_param(self,name):
-		return self.model.get_param(name)
+	def get_model_param(self,name,units=None):
+		return self.model.get_param(name,units)
 	
-	def get_model_params(self):
-		return self.model.get_params()
+	def get_model_params(self,units=None):
+		return self.model.get_params(units)
 		
 	def get_chisq(self):
 		return sum([self.chisq[t] for t in self.chisq])/self.size
@@ -109,6 +110,7 @@ class ITCSim:
 	
 	def add_experiment_file( self, file, **kwargs ):
 		tmp,data = read_itcsimlib_exp(file)
+		
 		# overwrite any file-obtained info with explicit values
 		info = tmp.copy()
 		info.update(kwargs)
@@ -141,20 +143,22 @@ class ITCSim:
 			if(indices==None) or (i in indices):
 				E.export_data(**kwargs)
 				
-	def write_params(self, **kwargs):
-		write_params_to_file( file, params=self.model.get_params(), units=self.units, **kwargs )
+	def write_params(self, file, **kwargs):
+		write_params_to_file( file, params=self.model.get_params(), **kwargs )
+		
+	def read_params(self, file, **kwargs):
+		self.set_model_params( read_params_from_file(file, **kwargs) )
 			
 	def run( self, experiments=None, writeback=True ):
 		"""
 		Using the current parameters, generates fits for either the specified experiments or all experimental datasets, returns the normalized/average chi-square goodness of fit
 		"""
-		
 		if experiments:
 			for E in experiments:
-				self.in_Queue.put( (self.model.get_params(),E) )
+				self.in_Queue.put( (self.model.get_params(units=_units[0]),E) )
 		else:
 			for E in self.get_experiments():
-				self.in_Queue.put( (self.model.get_params(),E) )
+				self.in_Queue.put( (self.model.get_params(units=_units[0]),E) )
 
 		queue_contents = []
 		while len(queue_contents) < self.size:

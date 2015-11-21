@@ -1,5 +1,6 @@
 from random	import choice,random
 from scipy 	import optimize,mean,std
+from thermo	import *
 
 from utilities		import *
 try:
@@ -56,7 +57,7 @@ class ITCFit:
 		assert param in self.model.get_param_names()
 		self.bounds[param] = (low,high)
 
-	def optimize(self, params=[], callback=None ):
+	def optimize(self, params=[], callback=None, update_fits=False ):
 		"""Optimize the specified parameters.
 
 		Args:
@@ -77,10 +78,10 @@ class ITCFit:
 
 		# starting parameter values to restore later
 		start_params = self.sim.get_model_params().copy()
-
+		
 		# initial param guesses as list
-		x0 = [start_params[p] for p in start_params]
-
+		x0 = [start_params[p] for p in params]
+		
 		# the target objective function to minimize
 		def _target(x,sim):
 			for i,p in enumerate(params):
@@ -89,20 +90,25 @@ class ITCFit:
 			# this is hackish - if we violate a boundary, return a scaled well function based on the last iteration point
 			m = self._check_bounds()
 			if m > 0:
-				return sim.chisq() * (1+m)
+				return sim.get_chisq() * (1+m)
 
 			return sim.run(writeback=False)
 
 		# optimize parameters
 		opt = self._fitter( _target, x0, callback )
 
-		# restore initial parameter values
-		sim.set_model_params(*start_params)
+		ret = OrderedDict( (p,opt[0][i]) for i,p in enumerate(params) )
+		self.sim.set_model_params(**ret)
 
+		if update_fits:
+			self.sim.run()
+		else: # restore initial parameter values
+			self.sim.set_model_params(**start_params)
+	
 		# return the optimized parameters and the chisquare value
-		return OrderedDict( (p,opt[0][i]) for i,p in enumerate(params) ), opt[1]
+		return ret,opt[1]
 
-	def estimate(self, params=[], bootstraps=1000, randomize=0.0, callback=None, logfile=None ):
+	def estimate(self, params=[], bootstraps=1000, randomize=0.1, callback=None, logfile=None ):
 		"""Generate confidence intervals for optimized parameters.
 
 		Args:
@@ -144,7 +150,7 @@ class ITCFit:
 
 			# randomize starting point by user-specifiable amount
 			for p in params:
-				self.sim.set_model_param(p,self.sim_get_model_param(p) * (1+(2*random()-0.5)*randomize))
+				self.sim.set_model_param(p,self.sim.get_model_param(p) * (1+(2*random()-0.5)*randomize))
 
 			# replace the experimental data points with the synthetic data
 			for j,E in enumerate(self.sim.get_experiments()):
@@ -161,10 +167,10 @@ class ITCFit:
 				callback(optimized)
 
 			if logfile != None:
-				write_params_to_file(logfile,optimized,header=(i==0),extra="\t%.3f"%(chisq))
+				write_params_to_file(logfile,optimized,header=(i==0),post="%.3f"%(chisq))
 
 			# restore initial parameter values for the next iteration
-			self.sim.set_model_params(*start_params)
+			self.sim.set_model_params(**start_params)
 
 		# restore original experimental data and fit for the experiments
 		for i,E in enumerate(self.sim.get_experiments()):
@@ -197,6 +203,7 @@ class ITCFit:
 				func=func,
 				x0=x0,
 				args=(self.sim,),
+				full_output=True,
 				callback=callback,
 				**self.method_args
 			)

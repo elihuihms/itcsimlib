@@ -91,17 +91,19 @@ class ITCExperimentBase:
 			dV = sum(self.injections[0:i])
 			
 			# these are += because it's possible that a component could be in both the syringe and cell solutions
-			for s in Syringe:
-				self.Concentrations[i][s] += (Syringe[s]*self.injections[i]/V0) + ((Syringe[s]*dV/V0) * (1.0/(1.0+(dV/(2.0*V0)))))
-			for s in Cell:
-				self.Concentrations[i][s] += Cell[s] * ( (1-(dV/(2.0*V0))) / (1.0+(dV/(2.0*V0))) )
+			for s in self.Syringe:
+				self.Concentrations[i][s] += (self.Syringe[s]*self.injections[i]/V0) + ((self.Syringe[s]*dV/V0) * (1.0/(1.0+(dV/(2.0*V0)))))
+			for s in self.Cell:
+				self.Concentrations[i][s] += self.Cell[s] * ( (1-(dV/(2.0*V0))) / (1.0+(dV/(2.0*V0))) )
 
 		# convert raw data (in calories) to joules per mol of injectant
 		assert len(dQ) == self.npoints
 		self.dQ_exp = numpy.array([J_from_cal(dQ[i]) for i in xrange(self.npoints)],dtype='d')
 		self.dQ_fit	= None
-		self.ddQ = [None]*self.npoints
+		self.ddQ = ddQ
+		self.spline = None
 		self.chisq	= None
+		self.initialized = False # will be set to True by implementors of this base class
 
 	def make_plot(self,hardcopy=False,hardcopydir='.',hardcopyprefix='', hardcopytype='png'):
 		"""Generate a plot of the experimental data, and the fit if present.
@@ -116,6 +118,9 @@ class ITCExperimentBase:
 			None
 
 		"""
+		if not self.initialized:
+			raise Exception("No data to plot. If experiment is synthetic, call sim.run() first.")
+		
 		try:
 			if _MATPLOTLIB_BACKEND != None:
 				import matplotlib
@@ -133,22 +138,22 @@ class ITCExperimentBase:
 		pyplot.xlabel("%s / %s"%(self.syringeRef,self.cellRef))
 
 		tmpx = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in xrange(self.npoints) if i not in self.skip ]
-		tmpy = [ convert_from_J(self.units,self.dQ_exp[i]) for i in xrange(self.npoints) if i not in self.skip ]
+		tmpy = [ convert_from_J(self.units,self.dQ_exp[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in xrange(self.npoints) if i not in self.skip ]
 		tmpd = [ convert_from_J(self.units,self.ddQ[i]) for i in xrange(self.npoints) if i not in self.skip ]
 
 		pyplot.errorbar(tmpx,tmpy,yerr=tmpd,c='#000000',fmt='s')
 
 		if getattr(self,'spline',False):
-			tmpz = [ convert_from_J(self.units,self.spline[i]) for i in xrange(self.npoints) if i not in self.skip ]
+			tmpz = [ convert_from_J(self.units,self.spline[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in xrange(self.npoints) if i not in self.skip ]
 			pyplot.plot(tmpx,tmpz,c='g')
 
 		if getattr(self,'dQ_fit',False):
-			tmpy = [ convert_from_J(self.units,self.dQ_fit[i]) for i in xrange(self.npoints) if i not in self.skip ]
+			tmpy = [ convert_from_J(self.units,self.dQ_fit[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in xrange(self.npoints) if i not in self.skip ]
 			pyplot.plot(tmpx,tmpy,c='r')
 
 		if len(self.skip) > 0:
 			tmpx = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in self.skip ]
-			tmpy = [ convert_from_J(self.units,self.dQ_exp[i]) for i in self.skip ]
+			tmpy = [ convert_from_J(self.units,self.dQ_exp[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in self.skip ]
 			pyplot.errorbar(tmpx,tmpy,yerr=0,c='g',fmt='s')
 
 		pyplot.draw()
@@ -158,7 +163,7 @@ class ITCExperimentBase:
 		else:
 			pyplot.show()
 			
-	def export_data(self,path,units=None):
+	def export_to_file(self,path,units='cal',full=False):
 		"""Export the attributes of the experiment to a file.
 
 		Args:
@@ -169,10 +174,7 @@ class ITCExperimentBase:
 			None
 		"""
 		
-		if units:
-			assert units in ('cal','kcal','J')
-		else:
-			units = self.units
+		assert units in ('cal','kcal','J')
 
 		from datetime import datetime
 
@@ -183,12 +185,16 @@ class ITCExperimentBase:
 		h.write("# T	%.5f\n"%(self.T))
 		h.write("# V0	%.5f\n"%(self.V0))
 		for s in self.Cell:
-			h.write("# Cell	%s	%.5f\n"%(s,self.Cell[s])) 
+			h.write("# Cell	%s	%.5E\n"%(s,self.Cell[s])) 
 		for s in self.Syringe:
-			h.write("# Syringe	%s	%.5f\n"%(s,self.Syringe[s])) 
+			h.write("# Syringe	%s	%.5E\n"%(s,self.Syringe[s])) 
 		h.write("# Q_dil	%.5E\n"%(self.Q_dil))
-		h.write("# skip: %s\n"%(",".join(map(str,self.skip))))
-		h.write("#\n# Ivol	dQ_exp	ddQ_exp dQ_fit	spline	skipped	%s	%s"%("\t".join(self.Cell.keys()),"\t".join(self.Syringe.keys())))
+		h.write("# skip %s\n"%(",".join(map(str,self.skip))))
+		
+		if full:
+			h.write("#\n# Ivol	dQ_exp	ddQ_exp dQ_fit	spline	skipped	%s	%s\n"%("\t".join(self.Cell.keys()),"\t".join(self.Syringe.keys())))
+		else:
+			h.write("#\n# Ivol	dQ_exp\n")
 		
 		if self.spline == None:
 			spline = [0 for i in xrange(self.npoints)]
@@ -198,19 +204,21 @@ class ITCExperimentBase:
 		for i in xrange(self.npoints):
 			cell	= ["%.5f"%(self.Concentrations[i][s]) for s in self.Cell]
 			syringe	= ["%.5f"%(self.Concentrations[i][s]) for s in self.Syringe]
-			h.write("%i	%.5f	%.5E	%.5E	%.5E	%.5f	%.5E	%.5E	%.5E	%.5E	%s	%s	%s\n"%(
-				i,
-				self.injections[i],
-				self.Concentrations[i][self.cellRef],
-				self.Concentrations[i][self.syringeRef],
-				convert_from_J(units,self.dQ_exp[i]),
-				convert_from_J(units,self.ddQ[i]),
-				convert_from_J(units,self.dQ_fit[i]),
-				convert_from_J(units,spline[i]),
-				(i in self.skip),
-				"\t".join(cell),
-				"\t".join(syringe)
-			))
+			if full:
+				h.write("%.5f	%.5f	%.5E	%.5E	%.5f	%.5E	%.5E	%i	%s	%s\n"%(
+					self.injections[i],
+					self.Concentrations[i][self.cellRef],
+					self.Concentrations[i][self.syringeRef],
+					convert_from_J(units,self.dQ_exp[i]),
+					convert_from_J(units,self.ddQ[i]),
+					convert_from_J(units,self.dQ_fit[i]),
+					convert_from_J(units,spline[i]),
+					(i in self.skip),
+					"\t".join(cell),
+					"\t".join(syringe)
+				))
+			else:
+				h.write("%.5f	%.5f\n"%(self.injections[i],convert_from_J('cal',self.dQ_exp[i])) )
 
 		h.close()
 		
@@ -229,7 +237,7 @@ class ITCExperimentBase:
 			dV += self.injections[i]
 			Q[i] += self.Q_dil*self.injections[i]*(1.0 - 1.0/(1.0+self.V0/dV)) # add heat of dilution
 			Q[i] *= self.V0 * self.Concentrations[i][self.cellRef] # normalize total heat content to macromolecule concentration in the cell volume
-		
+
 		# obtain the change in cell heat b/t each titration point
 		dQ = [0.0]*self.npoints
 		for i in xrange(self.npoints):
@@ -244,7 +252,7 @@ class ITCExperimentBase:
 		# calculate reduced chi-square value using error estimate
 		self.chisq = sum([(self.dQ_exp[i] - dQ[i])**2 / self.ddQ[i]**2 for i in xrange(self.npoints) if i not in self.skip])
 		self.chisq /= (self.npoints -len(self.skip)) # reduced chi-square corrected for n degrees of freedom
-		
+
 		return self.chisq
 		
 class ITCExperiment(ITCExperimentBase):
@@ -255,7 +263,7 @@ class ITCExperiment(ITCExperimentBase):
 	def __init__(self, spline_pts=7, spline_order=1, *args, **kwargs ):
 		ITCExperimentBase.__init__(self,*args,**kwargs)
 	
-		if ddQ != []:
+		if self.ddQ != []:
 			assert len(ddQ) == self.npoints
 			self.ddQ = numpy.array(ddQ[:],dtype='d')
 			self.spline = None
@@ -270,40 +278,38 @@ class ITCExperiment(ITCExperimentBase):
 			err = numpy.std([self.dQ_exp[i] - spl[tmp[i]] for i in xrange(self.npoints) if i not in self.skip])
 			self.ddQ = [err]*self.npoints
 			self.spline = [spl[tmp[i]] for i in xrange(self.npoints)]
+		
+		self.initialized = True
 
 class ITCExperimentSynthetic(ITCExperimentBase):
 	def __init__(self, injections, noise=0.0, *args, **kwargs):
 		ITCExperimentBase.__init__(self,injections=injections,dQ=[0.0]*len(injections),*args,**kwargs)
 		
-		self.noise = noise
+		self.noise = convert_to_J(self.units,noise)*self.Syringe[self.syringeRef]
 		self.initialized = False
 		
-	# monkeypatch chisq to updated dQ if uninitialized
-	def get_chisq(self, *args, **kwargs):
-	
-		if self.noise == 0 and self.initialized: # no noise is nonsensical to fit
-			return 0.0
-			
-		self.ddQ = [1.0]*self.npoints	
-		ret = ITCExperimentBase.get_chisq(self, *args, **kwargs)
+	# monkeypatch chisq to update dQ if uninitialized
+	def get_chisq(self, Q, writeback):
 
 		if not self.initialized:
-			if self.noise == 0:
-				self.dQ_exp = self.dQ_fit[:]
-			else:
+			
+			if self.noise:
+				self.ddQ = [self.noise]*self.npoints
+				ret = ITCExperimentBase.get_chisq(self, Q[:], writeback=True)
 				self.dQ_exp = [numpy.random.normal(self.dQ_fit[i],self.noise) for i in xrange(self.npoints)]
-				
-			self.initialized = True
-			ret = ITCExperimentBase.get_chisq(self, *args, **kwargs)
-			self.dQ_fit = None
-			
-		if self.noise == 0:
-			self.ddQ = [0.0]*self.npoints
-			
-		return ret
+				self.dQ_fit = None
+			else:
+				self.ddQ = [1.0]*self.npoints
+				ITCExperimentBase.get_chisq(self, Q[:], writeback=True)
+				self.dQ_exp = self.dQ_fit[:]
+				self.dQ_fit = None
+				ret = 1.0
 
+			self.initialized = True			
+			return ret
 
-
-
-
-
+		if self.noise:
+			return ITCExperimentBase.get_chisq(self, Q[:], writeback)
+		else:
+			ITCExperimentBase.get_chisq(self, Q[:], writeback)
+			return 1.0

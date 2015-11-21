@@ -28,8 +28,12 @@ class Ising(ITCModel):
 
 	def get_site_occupancy(self,config,site):
 		if site < 0:
+			if not self.circular:
+				return None
 			return self.configs[config][site+self.nsites] == 1
 		if site >= self.nsites:
+			if not self.circular:
+				return None
 			return self.configs[config][site%self.nsites] == 1
 		return self.configs[config][site] == 1
 		
@@ -125,13 +129,13 @@ Coupling can occur to both unoccupied and occupied lattice points."""
 					if self.get_site_occupancy(i,j+1): # is the next neighboring site occupied?
 						self.gibbs[i]+=dGb
 						self.enthalpies[i]+=dGb
-					else:
+					elif self.circular:
 						self.gibbs[i]+=dGa
 						self.enthalpies[i]+=dGa
 					
 					if self.get_site_occupancy(i,j-1): # is previous neighboring site occupied?
 						pass # Note: this avoids double counting, and thus is implemented as in Saroff & Kiefer
-					else:
+					elif self.circular:
 						self.gibbs[i]+=dGa
 						self.enthalpies[i]+=dGa
 			pass
@@ -205,10 +209,10 @@ Binding thermodynamics depend upon whether zero, one, or both neighboring sites 
 						if self.get_site_occupancy(i,j-1): # is previous neighboring site occupied?
 							self.gibbs[i] = dGZ
 							self.enthalpies[i] = dHZ
-						else:
+						elif self.circular:
 							self.gibbs[i] = dGY
 							self.enthalpies[i] = dHY
-					else:
+					elif self.circular:
 						self.gibbs[i] = dGX
 						self.enthalpies[i] = dHX		
 		return

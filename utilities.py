@@ -2,6 +2,11 @@ import os
 import os.path
 import thermo
 
+try:
+	_tmp = OrderedDict()
+except:
+	from ordered_dict	import OrderedDict
+
 def write_data_to_file( file, data, append=True ):
 	if append:
 		handle = open( file, 'a')
@@ -10,33 +15,58 @@ def write_data_to_file( file, data, append=True ):
 	handle.write(data)
 	handle.close()
 
-def write_params_to_file( file, params, extra=None, header=True, append=True, format="%.3f", units='J' ):
+def write_params_to_file( file, params, append=True, header=True, pre=None, post=None, format="%.5E"):
 	if append:
 		handle = open( file, 'a')
 	else:
 		handle = open( file, 'w')
-	keys = params.keys()
+
 	if header:
-		handle.write("\t".join(keys))
+		handle.write("\t".join( params.keys()))
 		handle.write("\n")
-	if unit_converter:
-		values = [format%(convert_from_J(units,params[k])) for k in keys]
-	else:
-		values = [format%(params[k]) for k in keys]
+		
+	if pre:
+		handle.write(str(pre))
+		handle.write("\t")
+	
+	values = [format%(params[k]) for k in params.keys()]
 	handle.write("\t".join(values))
-	if extra:
-		handle.write(extra)
+	
+	if post:
+		handle.write("\t")
+		handle.write(str(post))
+		
 	handle.write("\n")
 	handle.close()
 	
+def read_params_from_file( file, row=1, header=0 ):
+	counter,Hline,Dline = 0,None,None
+	with open( file, 'r' ) as f:
+		for l in f:
+			if counter == row:
+				Dline = l
+			if counter == header:
+				Hline = l
+			counter+=1
+	if Hline == None:
+		raise Exception("Specified header row # (%i) not found in %s"%(row,file))
+	if Dline == None:
+		raise Exception("Specified data row # (%i) not found in %s"%(row,file))
+	head,data = Hline.split(),map(float,Dline.split())
+	return OrderedDict(zip(head,data))
+	
 def read_itcsimlib_exp( file, **kwargs ):
 	from scipy import genfromtxt
-
+	ignore = ("itcsim","Date","Ivol","units")
 	data,h = genfromtxt(file,unpack=True),open(file)
 	info = {'Cell':{},'Syringe':{}}
 	for a in [l.split()[1:] for l in h.readlines() if l[0]=='#']:
-		if a[0] == 'Cell' or a[0] == 'Syringe':
+		if a == [] or a[0] in ignore:
+			continue
+		elif a[0] == 'Cell' or a[0] == 'Syringe':
 			info[a[0]][a[1]] = float(a[2])
+		elif a[0].lower() == 'skip':
+			info['skip'] = map(int,a[1:])
 		else:
 			info[a[0]] = float(a[1])
 	h.close()

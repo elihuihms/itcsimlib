@@ -25,6 +25,10 @@ class TRAP_DLL_Model(ITCModel):
 	def calc(self,T,concentrations,params):
 		n = len(concentrations)
 		Q = zeros(n,dtype('d'))
+		
+		# patch for compatibility with general model nomenclature
+		if 'TRAP' not in concentrations[0]:
+			concentrations = [{'TRAP':concentrations[i]['Macromolecule'],'Trp':concentrations[i]['Ligand']} for i in xrange(n)]
 				
 		status = self.lib.calc(
 			c_int( n ),

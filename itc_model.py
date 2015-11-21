@@ -1,4 +1,5 @@
 from thermo import *
+from copy	import deepcopy
 
 try:
 	_tmp = OrderedDict()
@@ -33,6 +34,8 @@ class ITCModel():
 						
 	# setters
 	def set_units(self,units):
+		if units != self.units:
+			self.set_params( units=units, **self.params )
 		self.units = units
 
 	def set_param(self, param, value, units=None):
@@ -49,12 +52,16 @@ class ITCModel():
 			self.set_param( k, v, units )
 
 	# getters
-	def get_params(self):
-		return self.params
+	def get_params(self,units=None):
+		return OrderedDict( (name,self.get_param(name,units)) for name in self.params.keys() )
 		
-	def get_param(self,name):
-		return self.params[name]
-	
+	def get_param(self,name,units=None):
+		if not self._param_meta[name][5]:
+			return self.params[name]
+		if units:
+			return convert_from_J(units,self.params[name])
+		return convert_from_J(self.units,self.params[name])
+		
 	def get_param_names(self):
 		return self.params.keys()
 		
@@ -81,15 +88,11 @@ class ITCModel():
 		ret+= "\nParameters:\n"
 		ret+= "Index	Param     Type                Value               Description\n"
 		for i,k in enumerate(self.params):
-			if self._param_meta[k][5]:
-				value = convert_from_J(self.units,self.get_param(k))
-			else:
-				value = self.get_param(k)
 			ret+="%i)\t%s%s%s%s\n" % (
 				i+1,
 				k.ljust(10),
 				types[self.get_param_type(k)].ljust(20),
-				(("%.3f"%(value))+" "+units[self.get_param_type(k)]).ljust(20),
+				(("%.3f"%self.get_param(k))+" "+units[self.get_param_type(k)]).ljust(20),
 				self._param_meta[k][3]
 				)
 
