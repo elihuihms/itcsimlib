@@ -72,19 +72,16 @@ class ITCSim:
 
 		self.model = model
 		self.model.set_units(self.units)
+
 		for i in xrange(len(self.workers)):
 			self.workers[i] = ITCCalc( self.T0, self.model, self.in_Queue, self.out_Queue )
 			self.workers[i].start()
 
-	def set_model_params(self, units=None, *args, **kwargs ):
-		if units == None:
-			units = self.units
-		self.model.set_params( units=units, *args, **kwargs )
+	def set_model_params(self, *args, **kwargs ):
+		self.model.set_params( *args, **kwargs )
 		
-	def set_model_param(self, param, value, units=None):
-		if units == None:
-			units = self.units
-		self.model.set_param( param, value, units=units)
+	def set_model_param(self, param, value):
+		self.model.set_param( param, value )
 
 	###
 	def info(self):

@@ -34,22 +34,20 @@ class ITCModel():
 						
 	# setters
 	def set_units(self,units):
-		if units != self.units:
-			self.set_params( units=units, **self.params )
 		self.units = units
 
-	def set_param(self, param, value, units=None):
-		if units == None or not self._param_meta[param][5]:
-			self.params[param] = value
+	def set_param(self, param, value ):
+		if self._param_meta[param][5]:
+			self.params[param] = convert_to_J(self.units,value)
 		else:
-			self.params[param] = convert_to_J(units,value)
+			self.params[param] = value
 
-	def set_params(self, units=None, *args, **kwargs):
+	def set_params(self, *args, **kwargs):
 		for i in xrange(len(args)):
 			assert len(args) == len(self.params)
-			self.set_param( self.params.keys()[i], args[i], units )
+			self.set_param( self.params.keys()[i], args[i] )
 		for k,v in kwargs.iteritems():
-			self.set_param( k, v, units )
+			self.set_param( k, v )
 
 	# getters
 	def get_params(self,units=None):

@@ -13,6 +13,7 @@ class Ising(ITCModel):
 		
 		self.nconfigs	= 2**self.nsites
 		self.configs	= [ [int(s) for s in ("{0:0%ib}"%(self.nsites)).format(i)] for i in xrange(self.nconfigs) ]
+		self.config_params	= [ [] for i in xrange(self.nconfigs) ] # list of free energy parameters used to construct the model's partition function
 		self.bound		= [ c.count(1) for c in self.configs ] # number of bound sites
 		self.weights	= [0.0]*self.nconfigs # probability of each config
 		self.gibbs		= [0.0]*self.nconfigs # free energy of each config
@@ -37,7 +38,71 @@ class Ising(ITCModel):
 			return self.configs[config][site%self.nsites] == 1
 		return self.configs[config][site] == 1
 		
-	def set_weights(self,totalP,totalL,T):
+	def get_partition_function(self):
+		self.set_energies(273.15,273.15)
+		
+		ret = "\\begin{array}{lcl}\n"
+		ret+= "\\Xi\n"
+		ret+= "&=&1\\\\\n"
+		for n in xrange(1,self.nsites+1):
+			if n == 1:
+				ret+= "&+& L*"
+			elif n > 1:
+				ret+= "&+& L^{%i}*"%(n)
+				
+			config_terms = [sorted(self.config_params[i]) for i in xrange(self.nconfigs) if self.bound[i] == n]
+			
+			# figure out what parameters are common in all terms for these config expressions
+			# add them to the partition function, and then remove them from the config lists
+			for param in set([parameter for terms in config_terms for parameter in terms]):
+				num = min([term.count(param) for term in config_terms])
+				for j in xrange(num):
+					for i in xrange(len(config_terms)):				
+						config_terms[i].remove(param)
+				
+				if num == 1:
+					ret+= "%s*"%(param)
+				elif num > 1:
+					ret+= "%s^{%i}*"%(param,num)
+
+			ret = ret[:-1] # remove last *
+			ret+= "["
+			
+			# condense degenerate configuration expressions
+			param_sets = {}
+			for term in config_terms:
+				hash = ''.join(term)
+				if hash in param_sets:
+					param_sets[hash][0]+= 1
+				else:
+					param_sets[hash] = [1,term]
+
+			for hash in param_sets:
+				if param_sets[hash][1] == []:
+					ret+= "%i+"%(param_sets[hash][0])
+					continue
+					
+				ret+= "%i("%(param_sets[hash][0])
+				skip = []
+				for p in param_sets[hash][1]:
+					if p in skip:
+						break
+					tmp = param_sets[hash][1].count(p)
+					if tmp > 0:
+						skip.append(p)
+						if tmp == 1:
+							ret+="%s"%(p)
+						else:
+							ret+="%s^{%i}"%(p,tmp)
+				ret+= ")+"
+			
+			ret = ret[:-1] # remove last +
+			ret+="]\\\\\n"
+		
+		ret+= "\\end{array}"
+		return ret
+		
+	def set_probabilities(self,totalP,totalL,T):
 		"""Set the normalized weights (probabilities) of each configuration at the specified conditions
 
 		Arguments:
@@ -80,7 +145,7 @@ class Ising(ITCModel):
 		Q = [0.0]*len(concentrations)
 		for i,c in enumerate(concentrations):
 			# set the weights (probabilities) of each lattice configuration
-			self.set_weights(c['Lattice'],c['Ligand'],T)
+			self.set_probabilities(c['Lattice'],c['Ligand'],T)
 			
 			# enthalpy is sum of all weighted enthalpies of the lattices
 			Q[i] = sum( [self.weights[j] * self.enthalpies[j] for j in xrange(self.nconfigs)] )
@@ -125,19 +190,25 @@ Coupling can occur to both unoccupied and occupied lattice points."""
 				if self.get_site_occupancy(i,j): # is site occupied?
 					self.gibbs[i]+=dG0
 					self.enthalpies[i]+=dH0
+					self.config_params[i].append( 'K_0' )
 					
 					if self.get_site_occupancy(i,j+1): # is the next neighboring site occupied?
 						self.gibbs[i]+=dGb
 						self.enthalpies[i]+=dGb
+						self.config_params[i].append( 'K_b' )
+
 					elif self.circular:
 						self.gibbs[i]+=dGa
 						self.enthalpies[i]+=dGa
+						self.config_params[i].append( 'K_a' )
 					
 					if self.get_site_occupancy(i,j-1): # is previous neighboring site occupied?
 						pass # Note: this avoids double counting, and thus is implemented as in Saroff & Kiefer
+
 					elif self.circular:
 						self.gibbs[i]+=dGa
 						self.enthalpies[i]+=dGa
+						self.config_params[i].append( 'K_a' )
 			pass
 		pass
 		return
@@ -153,7 +224,7 @@ Coupling only occurs between occupied lattice points."""
 		self.add_parameter( 'dGb',	'dG',	description='Additional free energy change upon binding to a site flanked by an occupied site' )
 		self.add_parameter( 'dH0',	'dH',	description='Intrinsic enthalpy change upon binding to a site.' )
 		self.add_parameter( 'dHb',	'dH',	description='Additional enthalpy change upon binding to a site flanked by an occupied site' )
-		self.add_parameter( 'dCpa',	'dCp',	description='Additional heat capacity change upon binding to a site flanked by an unoccupied site' )
+		self.add_parameter( 'dCp0',	'dCp',	description='Additional heat capacity change upon binding to a site flanked by an unoccupied site' )
 		self.add_parameter( 'dCpb',	'dCp',	description='Additional heat capacity change upon binding to a site flanked by an occupied site' )
 
 	def set_energies(self,T0,T):
@@ -170,10 +241,12 @@ Coupling only occurs between occupied lattice points."""
 				if self.get_site_occupancy(i,j): # is site occupied?
 					self.gibbs[i]+=dG0
 					self.enthalpies[i]+=dH0
+					self.config_params[i].append( 'K_0' )
 					
 					if self.get_site_occupancy(i,j+1): # is the next neighboring site occupied?
 						self.gibbs[i]+=dGb
 						self.enthalpies[i]+=dGb
+						self.config_params[i].append( 'K_b' )
 		return
 
 class NonAdditive(Ising):
@@ -201,18 +274,31 @@ Binding thermodynamics depend upon whether zero, one, or both neighboring sites 
 		dHY = dH_vant_Hoff( self.params['dHY'], self.params['dCpY'], T, T0 )
 		dHZ = dH_vant_Hoff( self.params['dHZ'], self.params['dCpZ'], T, T0 )
 		
-		for i in xrange(self.nconfigs):		
+		for i in xrange(self.nconfigs):
+			self.gibbs[i],self.enthalpies[i] = 0.0,0.0
+			
 			for j in xrange(self.nsites):
 				if self.get_site_occupancy(i,j): # is site occupied?
 					
 					if self.get_site_occupancy(i,j+1): # is the next neighboring site occupied?
 						if self.get_site_occupancy(i,j-1): # is previous neighboring site occupied?
-							self.gibbs[i] = dGZ
-							self.enthalpies[i] = dHZ
+							self.gibbs[i]+= dGZ
+							self.enthalpies[i]+= dHZ
+							self.config_params[i].append( 'K_Z' )
+							
 						elif self.circular:
-							self.gibbs[i] = dGY
-							self.enthalpies[i] = dHY
+							self.gibbs[i]+= dGY
+							self.enthalpies[i]+= dHY
+							self.config_params[i].append( 'K_Y' )
+							
+					elif self.get_site_occupancy(i,j-1):
+						self.gibbs[i]+= dGY
+						self.enthalpies[i]+= dHY
+						self.config_params[i].append( 'K_Y' )
+						
 					elif self.circular:
-						self.gibbs[i] = dGX
-						self.enthalpies[i] = dHX		
+						self.gibbs[i]+= dGX
+						self.enthalpies[i]+= dHX
+						self.config_params[i].append( 'K_X' )
+						
 		return

@@ -104,7 +104,26 @@ class ITCExperimentBase:
 		self.spline = None
 		self.chisq	= None
 		self.initialized = False # will be set to True by implementors of this base class
-
+		
+	def change_component_name(self,old_name,new_name):
+		assert old_name in self.Concentrations[0]
+		for i in xrange(self.npoints):
+			self.Concentrations[i][new_name] = self.Concentrations[i][old_name]
+			del self.Concentrations[i][old_name]
+		
+		if old_name in self.Cell:
+			self.Cell[new_name] = self.Cell[old_name]
+			del self.Cell[old_name]
+			
+		if old_name in self.Syringe:
+			self.Syringe[new_name] = self.Syringe[old_name]
+			del self.Syringe[old_name]
+			
+		if self.cellRef == old_name:
+			self.cellRef = new_name
+		if self.syringeRef == old_name:
+			self.syringeRef = new_name
+		
 	def make_plot(self,hardcopy=False,hardcopydir='.',hardcopyprefix='', hardcopytype='png'):
 		"""Generate a plot of the experimental data, and the fit if present.
 
