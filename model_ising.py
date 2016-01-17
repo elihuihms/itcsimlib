@@ -4,6 +4,11 @@ from itc_model	import ITCModel
 from thermo		import _R
 from thermo		import *
 
+try:
+	_tmp = OrderedDict()
+except:
+	from ordered_dict	import OrderedDict
+
 class Ising(ITCModel):
 
 	def __init__(self,nsites=3,circular=1):
@@ -50,7 +55,8 @@ class Ising(ITCModel):
 			elif n > 1:
 				ret+= "&+& L^{%i}*"%(n)
 				
-			config_terms = [sorted(self.config_params[i]) for i in xrange(self.nconfigs) if self.bound[i] == n]
+			config_terms = [ sorted(self.config_params[i]) for i in xrange(self.nconfigs) if self.bound[i] == n]
+			config_gibbs = [ self.gibbs[i] for i in xrange(self.nconfigs) if self.bound[i] == n ]
 			
 			# figure out what parameters are common in all terms for these config expressions
 			# add them to the partition function, and then remove them from the config lists
@@ -69,14 +75,17 @@ class Ising(ITCModel):
 			ret+= "["
 			
 			# condense degenerate configuration expressions
-			param_sets = {}
-			for term in config_terms:
+			param_sets = OrderedDict()
+			for i,term in enumerate(config_terms):
 				hash = ''.join(term)
 				if hash in param_sets:
 					param_sets[hash][0]+= 1
 				else:
-					param_sets[hash] = [1,term]
-
+					param_sets[hash] = [1,term,config_gibbs[i]]
+			
+			# order terms by most negative free energy first
+			param_sets = OrderedDict(sorted(param_sets.iteritems(),key=lambda x: x[1][2]))
+			
 			for hash in param_sets:
 				if param_sets[hash][1] == []:
 					ret+= "%i+"%(param_sets[hash][0])
