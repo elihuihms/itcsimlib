@@ -82,7 +82,7 @@ class ITCSim:
 		
 	def set_model_param(self, param, value):
 		self.model.set_param( param, value )
-
+		
 	###
 	def info(self):
 		print str(self)
@@ -152,10 +152,13 @@ class ITCSim:
 		"""
 		if experiments:
 			for E in experiments:
-				self.in_Queue.put( (self.model.get_params(units=_units[0]),E) )
+				self.in_Queue.put( (self.model.get_params(units=self.units),E) )
 		else:
+			if self.size == 0:
+				print "No experiments to simulate."
+				return None
 			for E in self.get_experiments():
-				self.in_Queue.put( (self.model.get_params(units=_units[0]),E) )
+				self.in_Queue.put( (self.model.get_params(units=self.units),E) )
 
 		queue_contents = []
 		while len(queue_contents) < self.size:

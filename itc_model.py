@@ -11,7 +11,7 @@ class ITCModel():
 	def __init__(self):		
 		self.params = OrderedDict()
 		self.components = []
-		self.units = None
+		self.units = "J"
 
 		self._param_meta, self._component_meta = {},{}
 		

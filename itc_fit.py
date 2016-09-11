@@ -33,7 +33,7 @@ class ITCFit:
 		"""
 
 		self.sim = sim
-		self.model	= self.sim.model
+		self.model	= self.sim.get_model()
 		self.method	= method
 		self.method_args = method_args
 		self.verbose = verbose
@@ -41,7 +41,14 @@ class ITCFit:
 
 		# obtain model-defined boundaries to enforce during fitting
 		self.bounds = dict( (name,self.model.get_param_bounds(name)) for name in self.model.get_param_names() )
-
+		
+	def set_sim(self, sim):
+		self.sim = sim
+		self.model = self.sim.get_model()
+		
+	def get_sim(self):
+		return self.sim
+	
 	def add_bounds(self, param, low=None, high=None):
 		"""Add low and/or high boundaries for a specified parameter.
 
@@ -93,7 +100,7 @@ class ITCFit:
 				return sim.get_chisq() * (1+m)
 
 			return sim.run(writeback=False)
-
+	
 		# optimize parameters
 		opt = self._fitter( _target, x0, callback )
 

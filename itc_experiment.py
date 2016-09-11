@@ -96,7 +96,7 @@ class ITCExperimentBase:
 			for s in self.Cell:
 				self.Concentrations[i][s] += self.Cell[s] * ( (1-(dV/(2.0*V0))) / (1.0+(dV/(2.0*V0))) )
 
-		# convert raw data (in calories) to joules per mol of injectant
+		# convert raw data (in calories) to joules (note that this is not normalized per mol of injectant!)
 		assert len(dQ) == self.npoints
 		self.dQ_exp = numpy.array([J_from_cal(dQ[i]) for i in xrange(self.npoints)],dtype='d')
 		self.dQ_fit	= None
@@ -156,6 +156,7 @@ class ITCExperimentBase:
 		pyplot.ylabel("%s/mol of %s"%(self.units,self.syringeRef))
 		pyplot.xlabel("%s / %s"%(self.syringeRef,self.cellRef))
 
+		# For convention, normalize the heat evolved as per mol of injected reference ligand
 		tmpx = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in xrange(self.npoints) if i not in self.skip ]
 		tmpy = [ convert_from_J(self.units,self.dQ_exp[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in xrange(self.npoints) if i not in self.skip ]
 		tmpd = [ convert_from_J(self.units,self.ddQ[i]) for i in xrange(self.npoints) if i not in self.skip ]
@@ -211,7 +212,7 @@ class ITCExperimentBase:
 		h.write("# skip %s\n"%(",".join(map(str,self.skip))))
 		
 		if full:
-			h.write("#\n# Ivol	dQ_exp	ddQ_exp dQ_fit	spline	skipped	%s	%s\n"%("\t".join(self.Cell.keys()),"\t".join(self.Syringe.keys())))
+			h.write("#\n# Ivol	dQ_exp	ddQ_exp dQ_fit	dQ_spline	skipped	%s	%s\n"%("\t".join(self.Cell.keys()),"\t".join(self.Syringe.keys())))
 		else:
 			h.write("#\n# Ivol	dQ_exp\n")
 		
@@ -221,13 +222,11 @@ class ITCExperimentBase:
 			spline = self.spline[:]
 
 		for i in xrange(self.npoints):
-			cell	= ["%.5f"%(self.Concentrations[i][s]) for s in self.Cell]
-			syringe	= ["%.5f"%(self.Concentrations[i][s]) for s in self.Syringe]
+			cell	= ["%.5E"%(self.Concentrations[i][s]) for s in self.Cell]
+			syringe	= ["%.5E"%(self.Concentrations[i][s]) for s in self.Syringe]
 			if full:
-				h.write("%.5f	%.5f	%.5E	%.5E	%.5f	%.5E	%.5E	%i	%s	%s\n"%(
+				h.write("%.5f	%.5E	%.5E	%.5E	%.5E	%i	%s	%s\n"%(
 					self.injections[i],
-					self.Concentrations[i][self.cellRef],
-					self.Concentrations[i][self.syringeRef],
 					convert_from_J(units,self.dQ_exp[i]),
 					convert_from_J(units,self.ddQ[i]),
 					convert_from_J(units,self.dQ_fit[i]),
@@ -250,16 +249,19 @@ class ITCExperimentBase:
 		Returns:
 			(float): The goodness of the fit, as a reduced chi-square.
 		"""
-
+		
 		dV = 0.0
 		for i in xrange(self.npoints):
 			dV += self.injections[i]
 			Q[i] += self.Q_dil*self.injections[i]*(1.0 - 1.0/(1.0+self.V0/dV)) # add heat of dilution
 			Q[i] *= self.V0 * self.Concentrations[i][self.cellRef] # normalize total heat content to macromolecule concentration in the cell volume
 
-		# obtain the change in cell heat b/t each titration point
+		# obtain the change in cell heat between each titration point
 		dQ = [0.0]*self.npoints
 		for i in xrange(self.npoints):
+			#if self.title == "35C-01-TRAPstk-TrpA":
+			#	print Q[i]
+				
 			if i==0:
 				dQ[i] = Q[i] + ( (self.injections[i]/self.V0)*(Q[i]/2.0) )
 			else:
