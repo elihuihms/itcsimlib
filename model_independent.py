@@ -1,5 +1,6 @@
-from math		import exp,pow,sqrt
+import warnings
 import scipy.optimize as optimize
+from math		import exp,pow,sqrt,log10
 
 from itc_model	import ITCModel
 from thermo		import *
@@ -40,6 +41,7 @@ class NModes(ITCModel):
 	def __init__(self,modes=2):
 		ITCModel.__init__(self)
 		self.nmodes = modes
+		self.precision = 1E-9
 
 		self.add_component('Macromolecule')
 		self.add_component('Ligand')
@@ -57,6 +59,10 @@ class NModes(ITCModel):
 			p[i*3 +0]	= self.params['n'+str(i+1)]
 			p[i*3 +1]	= 1.0/Kd_from_dG( dG_vant_Hoff( self.params[dG], self.params[dH], self.params[dCp], T, T0 ), T)
 			p[i*3 +2]	= dH_vant_Hoff( self.params[dH], self.params[dCp], T, T0 )
+			
+			if min(self.precision,0.01/p[i*3 +1]) < self.precision:
+				warnings.warn( "Convergence precision is greater than 1%% of mode %i Kd (%0.1E). Setting precision to %0.0E."%(i+1,1.0/p[i*3 +1],10**int(-1*log10(p[i*3 +1]) -3)), stacklevel=8 )
+				self.precision = 10**int(-1*log10(p[i*3 +1]) -3)
 
 		def _get_free(Lfree,Ltot,Ptot):
 			Lbound = 0.0
@@ -67,7 +73,7 @@ class NModes(ITCModel):
 
 		Q = [0.0]*n
 		for j,c in enumerate(concentrations):
-			Lfree = optimize.brentq( _get_free, 0.0, c['Ligand'], args=(c['Ligand'],c['Macromolecule']) )
+			Lfree = optimize.brentq( _get_free, 0.0, c['Ligand'], args=(c['Ligand'],c['Macromolecule']), xtol=self.precision, disp=True )
 			for i in xrange(self.nmodes):
 				stoich,Ka,dH = p[i*3:i*3+3]
 				Q[j] +=( stoich * dH * (Ka*Lfree)/(Ka*Lfree +1) )

@@ -23,6 +23,7 @@ class Ising(ITCModel):
 		self.weights	= [0.0]*self.nconfigs # probability of each config
 		self.gibbs		= [0.0]*self.nconfigs # free energy of each config
 		self.enthalpies	= [0.0]*self.nconfigs # enthalpic energy of each config
+		self.precision	= 1E-9 # the precision in ligand concentration required for convergence during set_probabilities()
 
 		if self.circular:		
 			self.add_component('Lattice',description='A circular lattice with %i binding sites'%(self.nsites))
@@ -111,6 +112,10 @@ class Ising(ITCModel):
 		ret+= "\\end{array}"
 		return ret
 		
+	def set_precision(self,precision=1E-9):
+		"""Sets the precision in free ligand concentration for set_probabilities()"""
+		self.precision = precision
+		
 	def set_probabilities(self,totalP,totalL,T):
 		"""Set the normalized weights (probabilities) of each configuration at the specified conditions
 
@@ -137,7 +142,7 @@ class Ising(ITCModel):
 			return totalL - (freeL + bound)
 		
 		# find where the deviation between actual and test free ligand is zero. Use zero free and total ligand as our bracketing guesses
-		freeL = scipy.optimize.brentq( _freeL_dev, 0.0, totalL, disp=True )
+		freeL = scipy.optimize.brentq( _freeL_dev, 0.0, totalL, xtol=self.precision, disp=True )
 		
 		# make sure before we quit that we set the weights at the correct free ligand conc
 		_freeL_dev( freeL )
@@ -218,8 +223,6 @@ Coupling can occur to both unoccupied and occupied lattice points."""
 						self.gibbs[i]+=dGa
 						self.enthalpies[i]+=dGa
 						self.config_params[i].append( 'K_a' )
-			pass
-		pass
 		return
 
 class HalfAdditive(Ising):

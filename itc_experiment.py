@@ -87,14 +87,25 @@ class ITCExperimentBase:
 
 		# calculate the total ligand and macromolecule concentration in the cell at each titration point
 		# this uses the dilution formula described in Microcal's data processing in Origin manual
+		self.dDQ_conc = [0.0]*self.npoints # fractional concentration of syringe solution in cell to use for dilution calculations
 		for i in xrange(self.npoints):
 			dV = sum(self.injections[0:i])
+			
+			self.dDQ_conc[i] = (1.0*self.injections[i]/V0) + ((1.0*dV/V0) * (1.0/(1.0+(dV/(2.0*V0)))))
 			
 			# these are += because it's possible that a component could be in both the syringe and cell solutions
 			for s in self.Syringe:
 				self.Concentrations[i][s] += (self.Syringe[s]*self.injections[i]/V0) + ((self.Syringe[s]*dV/V0) * (1.0/(1.0+(dV/(2.0*V0)))))
 			for s in self.Cell:
 				self.Concentrations[i][s] += self.Cell[s] * ( (1-(dV/(2.0*V0))) / (1.0+(dV/(2.0*V0))) )
+
+		# heat of dilution will be proportional to the difference in concentration between syringe solution and cell solutions
+		self.dQ_dil = [0.0]*self.npoints
+		for i in xrange(self.npoints):
+			if i == 0:
+				self.dQ_dil[i] = (1.0 -self.dDQ_conc[i]) * self.Q_dil
+			else:
+				self.dQ_dil[i] = (1.0 -self.dDQ_conc[i] -self.dDQ_conc[i-1]) * self.Q_dil 
 
 		# convert raw data (in calories) to joules (note that this is not normalized per mol of injectant!)
 		assert len(dQ) == self.npoints
@@ -104,7 +115,28 @@ class ITCExperimentBase:
 		self.spline = None
 		self.chisq	= None
 		self.initialized = False # will be set to True by implementors of this base class
-		
+	
+	def __str__(self):
+		ret = "Title: %s\n"%(self.title)
+		if (self.chisq != None):
+			ret+= "Chisq: %f\n"%(self.chisq)
+		ret+= "Temperature: %fK\n"%(self.T)
+		ret+= "%i Injections (%i skipped)\n"%(self.npoints,len(self.skip))
+		ret+= "Dilution enthalpy: %.3E\n"%(self.Q_dil)
+		ret+= "Cell components:\n"
+		for s in self.Cell:
+			ret+="\t%s (%.3E M)"%(s,self.Concentrations[0][s])
+			if s == self.Cell.keys()[0]:
+				ret+=" (reference)"
+			ret+="\n"
+		ret+= "Syringe components:\n"
+		for s in self.Syringe:
+			ret+="\t%s (%.3E M)"%(s,self.Concentrations[0][s])
+			if s == self.Syringe.keys()[0]:
+				ret+=" (reference)"
+			ret+="\n"
+		return ret
+
 	def change_component_name(self,old_name,new_name):
 		assert old_name in self.Concentrations[0]
 		for i in xrange(self.npoints):
@@ -175,6 +207,11 @@ class ITCExperimentBase:
 			tmpx = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in self.skip ]
 			tmpy = [ convert_from_J(self.units,self.dQ_exp[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in self.skip ]
 			pyplot.errorbar(tmpx,tmpy,yerr=0,c='g',fmt='s')
+			
+		if self.Q_dil != 0:
+			tmpx = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in xrange(self.npoints) if i not in self.skip ]
+			tmpy = [ convert_from_J(self.units,self.dQ_dil[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in xrange(self.npoints) if i not in self.skip ]
+			pyplot.plot(tmpx,tmpy,c='b')
 
 		pyplot.draw()
 		if hardcopy:
@@ -253,20 +290,18 @@ class ITCExperimentBase:
 		dV = 0.0
 		for i in xrange(self.npoints):
 			dV += self.injections[i]
-			Q[i] += self.Q_dil*self.injections[i]*(1.0 - 1.0/(1.0+self.V0/dV)) # add heat of dilution
 			Q[i] *= self.V0 * self.Concentrations[i][self.cellRef] # normalize total heat content to macromolecule concentration in the cell volume
 
 		# obtain the change in cell heat between each titration point
 		dQ = [0.0]*self.npoints
 		for i in xrange(self.npoints):
-			#if self.title == "35C-01-TRAPstk-TrpA":
-			#	print Q[i]
-				
 			if i==0:
 				dQ[i] = Q[i] + ( (self.injections[i]/self.V0)*(Q[i]/2.0) )
 			else:
 				dQ[i] = Q[i] + ( (self.injections[i]/self.V0)*((Q[i]+Q[i-1])/2.0) ) - Q[i-1]
-				
+			
+			dQ[i] += self.dQ_dil[i] # add heat of dilution
+			
 		if writeback:
 			self.dQ_fit = dQ[:]
 

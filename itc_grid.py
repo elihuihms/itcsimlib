@@ -86,7 +86,7 @@ class ITCGrid:
 
 		return gridpt
 
-	def optimize(self, params=[], callback=None, **kwargs ):
+	def optimize(self, params=[], **kwargs ):
 		"""Optimize the model at each point on the defined grid.
 
 		Arguments:

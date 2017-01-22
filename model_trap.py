@@ -63,7 +63,7 @@ class SK(TRAP_DLL_Model):
 		self.add_parameter( 'dCpb',	'dCp',	description='Change in heat capacity of coupling to an occupied site' )
 
 	def start(self):
-		return self.loadDLL(self,'model_trap_sk.so')
+		return self.loadDLL('model_trap_sk.so')
 		
 	def Q(self,T0,T,concentrations):
 		p = (
@@ -137,5 +137,34 @@ class IKi(TRAP_DLL_Model):
 			dH_vant_Hoff( self.params['dH0'], self.params['dCp0'], T, T0 ),
 			dH_vant_Hoff( self.params['dH0']+self.params['dHoe'], self.params['dCp0']+self.params['dCpoe'], T, T0 ),
 			dH_vant_Hoff( self.params['dH0']+self.params['dHoo'], self.params['dCp0']+self.params['dCpoo'], T, T0 )
+			)
+		return self.calc(T,concentrations,p)
+		
+class SKa(TRAP_DLL_Model):
+	"""
+	A Six-parameter model describing an additive model of cooperativity 
+	"""
+
+	def __init__(self):
+		TRAP_DLL_Model.__init__(self)
+
+		self.add_parameter( 'dG0',	'dG',	description='Intrinsic free energy change upon binding' )
+		self.add_parameter( 'dGb',	'dG',	description='Free energy of coupling to an occupied site' )
+		self.add_parameter( 'dH0',	'dH',	description='Intrinsic enthalpy change upon binding' )
+		self.add_parameter( 'dHb',	'dH',	description='Enthalpy of coupling to an occupied site' )
+		self.add_parameter( 'dCp0',	'dCp',	description='Intrinsic change in heat capacity change upon binding' )
+		self.add_parameter( 'dCpb',	'dCp',	description='Change in heat capacity of coupling to an occupied site' )
+
+	def start(self):
+		return self.loadDLL('model_trap_ik.so')
+
+	def Q(self,T0,T,concentrations):
+		p = (
+			dG_vant_Hoff( self.params['dG0'], self.params['dH0'], self.params['dCp0'], T, T0 ),
+			dG_vant_Hoff( self.params['dG0']+(1*self.params['dGb']), self.params['dH0']+(1*self.params['dHb']), self.params['dCp0']+(1*self.params['dCpb']), T, T0 ),
+			dG_vant_Hoff( self.params['dG0']+(2*self.params['dGb']), self.params['dH0']+(2*self.params['dHb']), self.params['dCp0']+(2*self.params['dCpb']), T, T0 ),
+			dH_vant_Hoff( self.params['dH0'], self.params['dCp0'], T, T0 ),
+			dH_vant_Hoff( self.params['dH0']+(1*self.params['dHb']), self.params['dCp0']+(1*self.params['dCpb']), T, T0 ),
+			dH_vant_Hoff( self.params['dH0']+(2*self.params['dHb']), self.params['dCp0']+(2*self.params['dCpb']), T, T0 ),
 			)
 		return self.calc(T,concentrations,p)

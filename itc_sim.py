@@ -1,5 +1,5 @@
 from multiprocessing	import cpu_count,Queue
-
+from copy				import copy
 from itc_experiment		import *
 from itc_calc			import ITCCalc
 from thermo				import *
@@ -28,16 +28,28 @@ class ITCSim:
 		self.workers = [None] * threads
 
 	def __str__(self):
+		import sys
 		from __init__			import __version__
-		ret = "\nITCSim itcsimlib v.%s\n"%(__version__)
-		ret+= "Current model information:\n"
+		from os.path			import abspath, getmtime
+		from datetime			import date
+		
+		ret = "################################################################################\n"
+		ret+= "{:^80}".format("itcsimlib v.%s"%(__version__))
+		ret+= "\n\nExecution Date: %s\n"%(date.today().ctime())
+		ret+= "Script: %s\n"%(abspath(sys.argv[0]))
+		ret+= "Modification Date: %s\n"%(date.fromtimestamp(getmtime(abspath(sys.argv[0]))).ctime())
+		ret+= "################################################################################\n"
+		ret+= "Simulation reference temperature: %fK\n"%(self.T0)
+		ret+= "Simulation units: %s\n"%(self.units)
+		if len(self.chisq)>0:
+			ret+= "Simulation chisq: %f\n"%(self.get_chisq())
+		ret+= "Simulation model:\n"
 		ret+= "\n".join( ["\t%s"%s for s in str(self.model).split("\n")] )
-		ret+= "\n\nPer-model chisq values:\n"
-		for E in self.get_experiments():
-			if E.title in self.chisq:
-				ret+= "\t%s	%f\n"%(E.title,self.chisq[E.title])
-			else:
-				ret+= "\t%s	N/A\n"%(E.title)
+		ret+= "\n################################################################################\n"
+		for i,E in enumerate(self.get_experiments()):
+			ret+= "Experiment %i:"%(i)
+			ret+= "\n".join( ["\t%s"%s for s in str(E).split("\n")] )
+			ret+= "\n"
 		return ret
 
 	# getters
@@ -45,13 +57,13 @@ class ITCSim:
 		return self.experiments[index]
 
 	def get_experiments(self):
-		return self.experiments
+		return copy(self.experiments)
 
 	def get_experiment_by_title(self, title):
 		for E in self.experiments:
 			if E.title==title:
 				return E
-		return None
+		raise KeyError("Experiment \"%s\" not found in simulation."%(title))
 
 	def get_model(self):
 		return self.model

@@ -1,5 +1,5 @@
 from random	import choice,random
-from scipy 	import optimize,mean,std
+from scipy 	import optimize,mean,std,sqrt
 from thermo	import *
 
 from utilities		import *
@@ -41,6 +41,21 @@ class ITCFit:
 
 		# obtain model-defined boundaries to enforce during fitting
 		self.bounds = dict( (name,self.model.get_param_bounds(name)) for name in self.model.get_param_names() )
+		
+	def _noisy_bisect(self, f, a, b, fa, fb, tolerance):
+		# From http://www.johndcook.com/blog/2012/06/14/root-finding-with-noisy-functions/
+		# Assume a < b, fa = f(a) < 0, fb = f(b) > 0.
+		if b-a < tolerance:
+			return (a, b)
+		mid = 0.5*(a+b)
+		fmid = f(mid)
+		if fmid < fa or fmid > fb: # Monotonicity violated. Reached resolution of noise.
+			return (a, b)
+		if fmid < 0:
+			a, fa = mid, fmid
+		else:
+			b, fb = mid, fmid
+		return self._noisy_bisect(f, a, b, fa, fb, tolerance)
 		
 	def set_sim(self, sim):
 		self.sim = sim
@@ -114,19 +129,117 @@ class ITCFit:
 	
 		# return the optimized parameters and the chisquare value
 		return ret,opt[1]
+		
+	def estimate(self, params, method='bootstrap', *args, **kwargs ):
+		assert method in ['sigma','bootstrap']
+	
+		if method == 'sigma':
+			return self.estimate_sigma( params, *args, **kwargs )
+		elif method == 'bootstrap':
+			return self.estimate_bootstrap( params, *args, **kwargs )
+	
+	def estimate_sigma(self, params=[], opt_params=None, sigma=None, stdevs=1, estimate=0.1, method='bisect', tolerance=0.001 ):
+		"""Generate confidence intervals for optimized parameters by finding reduced chi-square +n standard deviations
+		
+		Notes:
+			Requires that the simulation model parameters already be at a (global) minima.
+			Using the secant (brent's method) is about four times slower than using a noise-tolerant bisection method.
+		
+		Args:
+			params (list of strings): The names of the model parameters to find intervals for.
+			opt_params (dict of strings): The names of the model parameters to optimize. Setting to None ensures that all available model parameters will be optimized.
+			stdevs (int) : The number of standard deviations above 
+			method (string, "bisect" or "secant") : The method used to find the root of the target function.
+			tolerance (float) : The tolerance (in standard deviations) used to find the critical parameter values.
 
-	def estimate(self, params=[], bootstraps=1000, randomize=0.1, callback=None, logfile=None ):
-		"""Generate confidence intervals for optimized parameters.
+		Returns:
+			(dict of tuples): A parameter-name keyed dict of tuples consisting of the mean and standard deviation of the optimized values.
+		"""
+		
+		assert method in ("bisect","secant")
+				
+		# starting parameter values to restore later
+		start_params = self.sim.get_model_params().copy()
+		
+		# get the remaining model parameters that are to be optimized while the selected param is gridded 
+		if opt_params == None:
+			model_params = self.sim.get_model_params().copy()
+		else:
+			model_params = OrderedDict( (p,self.sim.get_model_param(p)) for p in model_params )
+		
+		if sigma == None: # calculate the expected sigma based on the number of observations
+			# Andrae, Rene, Tim Schulze-Hartung, and Peter Melchior. "Dos and don'ts of reduced chi-squared." arXiv preprint arXiv:1012.3754 (2010).
+			sigma = stdevs * (sqrt( 2.0 / sum([ e.npoints - len(e.skip) for e in self.sim.get_experiments() ]) ))
+		
+		# the critical chisq is the point where the low and high parameter estimates are obtained
+		critical_chisq = self.sim.run() + sigma
+				
+		param_values = {}
+		for p in params:
+			param_values[p] = [None,None]
+
+			opt_params = model_params.copy()
+			try: # remove the parameter to be held constant from the list of those to be optimized
+				del opt_params[p]
+			except KeyError:
+				pass
+
+			def target_function( x ): # return the discrepancy between the critical chisq and the chisq of the best fit when parameter p is fixed to argument x
+				self.sim.set_model_param(p,x)
+				return critical_chisq - self.optimize(opt_params)[1]
+
+			self.sim.set_model_params(**start_params)
+			estimate_counter,param_values[p][0] = estimate,model_params[p] * (1.0-estimate)
+			chisq_diff = target_function( param_values[p][0] )
+			while chisq_diff > 0: # if necessary, decrease the fixed parameter value until we've exceeded the critical chisq
+				estimate_counter = estimate_counter + estimate
+				if self.verbose:
+					print "Note: Lower guess (%f) for parameter \"%s\" is insufficient (%f from critical chisq). Decreasing parameter value to %f." % (param_values[p][0],p,chisq_diff,model_params[p] * (1.0-estimate_counter))
+				param_values[p][0] = model_params[p] * (1.0-estimate_counter)
+				chisq_diff = target_function( param_values[p][0] )
+			
+			# actually find the param value that provides the desired confidence interval
+			if method == "secant":
+				param_values[p][0] = optimize.brentq( target_function, model_params[p], param_values[p][0], xtol=tolerance )
+			else:
+				param_values[p][0] = sum(self._noisy_bisect(target_function, model_params[p], param_values[p][0], sigma, chisq_diff, tolerance))/2.0
+			
+			self.sim.set_model_params(**start_params)
+			estimate_counter,param_values[p][1] = estimate,model_params[p] * (1.0+estimate)
+			chisq_diff = target_function( param_values[p][1] )
+			while chisq_diff > 0: # if necessary, increase the fixed parameter value until we've exceeded the critical chisq
+				estimate_counter = estimate_counter + estimate
+				if self.verbose:
+					print "Note: Upper guess (%f) for parameter \"%s\" is insufficient (%f from critical chisq). Increasing parameter value to %f." % (param_values[p][1],p,chisq_diff,model_params[p] * (1.0+estimate_counter))
+				param_values[p][1] = model_params[p] * (1.0+estimate_counter)
+				chisq_diff = target_function( param_values[p][1] )
+			
+			# actually find the param value that provides the desired confidence interval
+			if method == "secant":
+				param_values[p][1] = optimize.brentq( target_function, model_params[p], param_values[p][1], xtol=tolerance )
+			else:
+				param_values[p][1] = sum(self._noisy_bisect(target_function, model_params[p], param_values[p][1], sigma, chisq_diff, tolerance))/2.0
+
+			# From chapter 2 tutorial data (stdevs=2, method='secant'):
+			#{'dG': [-10.727396269988125, -11.070049429908266], 'dCp': [-0.09939296467688882, -0.1524609718306775], 'dH': [-11.493031681092932, -12.022877990152883], 'n': [1.778168415517038, 1.8276370690304506]}
+			
+		# restore initial parameter values for the next iteration
+		self.sim.set_model_params(**start_params)
+			
+		return param_values
+				
+	def estimate_bootstrap(self, params=[], bootstraps=1000, randomize=0.1, callback=None, logfile=None ):
+		"""Generate confidence intervals for optimized parameters by bootstrapping
 
 		Args:
-			params (dict of strings): The names of the model parameters to optimize.
+			params (list of strings): The names of the model parameters to find intervals for.
 			bootstraps (int): The number of synthetic datasets to refit.
 			randomize (float): A fraction by which to perturb the starting parameters before optimization.
 			callback (function): A callback function to call at each optimization step, will be passed a vector of the current parameter values.
 			logfile (string): A file path to write the optimized parameter values for each bootstrap dataset
 
 		Returns:
-			(dict of tuples): A parameter-name keyed dict of tuples consisting of the mean and standar deviation of the optimized values
+			(dict of tuples): A parameter-name keyed dict of tuples consisting of the mean and standard deviation of the optimized values.
 		"""
 
 		if self.verbose:
@@ -210,6 +323,7 @@ class ITCFit:
 				func=func,
 				x0=x0,
 				args=(self.sim,),
+				disp=self.verbose,
 				full_output=True,
 				callback=callback,
 				**self.method_args
