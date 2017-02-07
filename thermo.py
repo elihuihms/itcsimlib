@@ -1,10 +1,10 @@
-from math 	import exp,log,sqrt
+import math
 
 _R = 8.3144621 # J/(K*mol)
-_units = ('J','kJ','cal','kcal')
+_UNITS = ('J','kJ','cal','kcal')
 
 def convert_to_J(units,value):
-	assert units in _units
+	assert units in _UNITS
 	if units == 'J':
 		return value
 	elif units == 'kJ':
@@ -15,7 +15,7 @@ def convert_to_J(units,value):
 		return J_from_cal(value)*1000.0
 
 def convert_from_J(units,value):
-	assert units in _units
+	assert units in _UNITS
 	if units == 'J':
 		return value
 	elif units == 'kJ':
@@ -26,10 +26,10 @@ def convert_from_J(units,value):
 		return cal_from_J(value)/1000.0	
 
 def dG_from_Kd( Kd, T ):
-	return _R*T*log(Kd)
+	return _R*T*math.log(Kd)
 
 def Kd_from_dG( dG, T ):
-	return exp( dG/(_R*T) )
+	return math.exp( dG/(_R*T) )
 
 def dS_from_dGdH( dG, dH, T ):
 	return (dG-dH)/(-1.0*T)
@@ -72,7 +72,7 @@ def normalize( x, y ):
 	for i in xrange(n):
 		x_rms += (x[i] - x_avg)**2
 		y_rms += (y[i] - y_avg)**2
-	x_rms, y_rms = sqrt(x_rms/n), sqrt(y_rms/n)
+	x_rms, y_rms = math.sqrt(x_rms/n), math.sqrt(y_rms/n)
 
 	# translate y data to origin, normalize scale, then transform back using data to be normalized to
 	y_norm = [0.0]*n
@@ -86,8 +86,8 @@ def dK_Gibbs_Helmholtz( T, T0, K0, dH0, dCp ):
 	Eqn. 19 from Winzor and Jackson (2006), also Naghibi et al., 1995
 	"""
 
-	return exp(
-		log(K0) + ( ((dH0-(T0*dCp)) / _R)*((1.0/T0)-(1.0/T)) ) + ((dCp/_R)*log(T/T0))
+	return math.exp(
+		math.log(K0) + ( ((dH0-(T0*dCp)) / _R)*((1.0/T0)-(1.0/T)) ) + ((dCp/_R)*math.log(T/T0))
 		)
 
 def dH_vant_Hoff( dH0, dCp, T, T0 ):
@@ -103,7 +103,7 @@ def dG_vant_Hoff( dG0, dH0, dCp, T, T0 ):
 	Assumes a constant dCp (i.e. linear dH w.r.t. T)
 	"""
 	dS0 = (dH0 - dG0) / T0
-	return dH0 - (T*dS0) + (dCp*( (T-T0) - (T*log(T/T0)) ))
+	return dH0 - (T*dS0) + (dCp*( (T-T0) - (T*math.log(T/T0)) ))
 
 def dG_vant_Hoff_dH( dG0, dH, dCp, T, T0 ):
 	"""
@@ -126,5 +126,5 @@ def dG_vant_Hoff_dH( dG0, dH, dCp, T, T0 ):
 	dG = dH(T) - dCp*(T-T0) - (T/T0)*[ dH(T) - dCp*(T-T0) - dG(T0) ] + dCp[ (T-T0) - T*ln(T/T0) ]
 	"""
 
-	return dH - dCp*(T-T0) - (T/T0)*( dH - dCp*(T-T0) - dG0 ) + dCp*( (T-T0) - T*log(T/T0) )
+	return dH - dCp*(T-T0) - (T/T0)*( dH - dCp*(T-T0) - dG0 ) + dCp*( (T-T0) - T*math.log(T/T0) )
 

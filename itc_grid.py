@@ -1,4 +1,4 @@
-import numpy
+import scipy
 
 class ITCGrid:
 	"""A class for either discretely space parameters either for different starting conditions or holding them fixed during optimization.
@@ -51,9 +51,9 @@ class ITCGrid:
 		assert param in self.sim.get_model_params().keys()
 		
 		if logspace:
-			self._grid_pts.append( numpy.logspace(start,stop,steps) )
+			self._grid_pts.append( scipy.logspace(start,stop,steps) )
 		else:
-			self._grid_pts.append( numpy.linspace(start,stop,steps) )
+			self._grid_pts.append( scipy.linspace(start,stop,steps) )
 		self._grid_size *= len(self._grid_pts[-1])
 		self._grid_order.append(param)
 
@@ -100,7 +100,7 @@ class ITCGrid:
 		assert self._grid_size > 1
 
 		if self.verbose:
-			print "\nTask: Optimizing %s parameters over %i grid points of %s parameters\n"%(",".join(params),self._grid_size,",".join(self._grid_order))
+			print "\nitc_grid: Optimizing %s parameters over %i grid points of %s parameters\n"%(",".join(params),self._grid_size,",".join(self._grid_order))
 
 		# archive original model params
 		start_params = self.sim.get_model_params().copy()
@@ -124,7 +124,7 @@ class ITCGrid:
 			try:
 				self._grid_results[i] = (point,)+self.fit.optimize( params=params, **kwargs )
 			except Exception as e:
-				print "Error: caught exception at grid point index %i: %s"%(i,str(e))
+				print "itc_grid: Error, caught exception at grid point index %i: %s"%(i,str(e))
 				continue
 
 			if self.callback != None:

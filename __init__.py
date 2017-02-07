@@ -1,5 +1,5 @@
-__version__ = "3.1"
-__copyright__ = """Copyright (C) 2015  Elihu Ihms
+__version__		= "0.3.1"
+__copyright__	= """Copyright (C) 2017  Elihu Ihms
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,11 +15,14 @@ You should have received a copy of the GNU General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA."""
 
-#__all__ = ['itc_sim','itc_fit','itc_calc','itc_grid','manipulator']
+__license__	= u'GPL v2'
+__author__	= u'Elihu Ihms'
+__author_email__	= u'elihuihms@elihuihms.com'
+
+MATPLOTLIB_BACKEND = None
 
 from itc_sim	import ITCSim
+from itc_model	import ITCModel
 from itc_fit	import ITCFit
 from itc_calc	import ITCCalc
 from itc_grid	import ITCGrid
-
-from manipulator	import Manipulator

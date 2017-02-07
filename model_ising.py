@@ -1,3 +1,5 @@
+import math
+import scipy
 import scipy.optimize
 
 from itc_model	import ITCModel
@@ -132,7 +134,7 @@ class Ising(ITCModel):
 			"""Return the deviation between predicted and actual free ligand concentration """
 			
 			# set the probability of each configuration at the free ligand concentration
-			self.weights = [exp( (-1.0 * self.gibbs[i]) / ( _R * T ) ) * freeL**self.bound[i] for i in xrange(self.nconfigs) ]
+			self.weights = [math.exp( (-1.0 * self.gibbs[i]) / ( _R * T ) ) * freeL**self.bound[i] for i in xrange(self.nconfigs) ]
 			total = sum(self.weights)
 			self.weights = [ self.weights[i] / total for i in xrange(self.nconfigs) ]
 			

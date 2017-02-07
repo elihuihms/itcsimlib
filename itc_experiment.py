@@ -1,13 +1,9 @@
-import numpy
-import numpy.random
-
-from os		import path
-from uuid	import uuid4
+import scipy
+import uuid
+import os
 
 from thermo	import *
 from utilities	import savitzky_golay
-
-_MATPLOTLIB_BACKEND = None #None for default
 
 class ITCExperimentBase:
 	"""A class that encapsulates a specific ITC experiment.
@@ -62,7 +58,7 @@ class ITCExperimentBase:
 		if title:
 			self.title		= title
 		else:
-			self.title 		= uuid4()
+			self.title 		= uuid.uuid4()
 	
 		# reference components
 		if cellRef == None:
@@ -109,7 +105,7 @@ class ITCExperimentBase:
 
 		# convert raw data (in calories) to joules (note that this is not normalized per mol of injectant!)
 		assert len(dQ) == self.npoints
-		self.dQ_exp = numpy.array([J_from_cal(dQ[i]) for i in xrange(self.npoints)],dtype='d')
+		self.dQ_exp = scipy.array([J_from_cal(dQ[i]) for i in xrange(self.npoints)],dtype='d')
 		self.dQ_fit	= None
 		self.ddQ = ddQ
 		self.spline = None
@@ -172,15 +168,16 @@ class ITCExperimentBase:
 		if not self.initialized:
 			raise Exception("No data to plot. If experiment is synthetic, call sim.run() first.")
 		
+		from __init__ import MATPLOTLIB_BACKEND
 		try:
-			if _MATPLOTLIB_BACKEND != None:
-				import matplotlib
-				matplotlib.use(_MATPLOTLIB_BACKEND)
-			import matplotlib.pyplot as pyplot
+			matplotlib.get_backend()
 		except:
-			pyplot = None
+			if MATPLOTLIB_BACKEND != None:
+				import matplotlib
+				matplotlib.use(MATPLOTLIB_BACKEND)
+		
+		import matplotlib.pyplot as pyplot
 
-		if pyplot == None: return
 		if hardcopy: fig = pyplot.figure()
 
 		pyplot.clf()
@@ -215,7 +212,7 @@ class ITCExperimentBase:
 
 		pyplot.draw()
 		if hardcopy:
-			fig.savefig( path.join(hardcopydir,"%s%s.%s"%(hardcopyprefix,self.title,hardcopytype)), bbox_inches='tight')
+			fig.savefig( os.path.join(hardcopydir,"%s%s.%s"%(hardcopyprefix,self.title,hardcopytype)), bbox_inches='tight')
 			pyplot.close(fig)
 		else:
 			pyplot.show()
@@ -321,7 +318,7 @@ class ITCExperiment(ITCExperimentBase):
 	
 		if self.ddQ != []:
 			assert len(ddQ) == self.npoints
-			self.ddQ = numpy.array(ddQ[:],dtype='d')
+			self.ddQ = scipy.array(ddQ[:],dtype='d')
 			self.spline = None
 		else: # estimate errors by fitting spline
 			counter,tmp = 0,[0]*self.npoints
@@ -331,17 +328,20 @@ class ITCExperiment(ITCExperimentBase):
 					counter += 1
 
 			spl = savitzky_golay([self.dQ_exp[i] for i in xrange(self.npoints) if i not in self.skip], spline_pts, spline_order )
-			err = numpy.std([self.dQ_exp[i] - spl[tmp[i]] for i in xrange(self.npoints) if i not in self.skip])
+			err = scipy.std([self.dQ_exp[i] - spl[tmp[i]] for i in xrange(self.npoints) if i not in self.skip])
 			self.ddQ = [err]*self.npoints
 			self.spline = [spl[tmp[i]] for i in xrange(self.npoints)]
 		
 		self.initialized = True
 
 class ITCExperimentSynthetic(ITCExperimentBase):
-	def __init__(self, injections, noise=0.0, *args, **kwargs):
+	def __init__(self, injections, noise=None, *args, **kwargs):
 		ITCExperimentBase.__init__(self,injections=injections,dQ=[0.0]*len(injections),*args,**kwargs)
 		
-		self.noise = convert_to_J(self.units,noise)*self.Syringe[self.syringeRef]
+		if noise == None:
+			self.noise = None	
+		else:
+			self.noise = convert_to_J(self.units,noise)*self.Syringe[self.syringeRef]
 		self.initialized = False
 		
 	# monkeypatch chisq to update dQ if uninitialized
@@ -352,7 +352,7 @@ class ITCExperimentSynthetic(ITCExperimentBase):
 			if self.noise:
 				self.ddQ = [self.noise]*self.npoints
 				ret = ITCExperimentBase.get_chisq(self, Q[:], writeback=True)
-				self.dQ_exp = [numpy.random.normal(self.dQ_fit[i],self.noise) for i in xrange(self.npoints)]
+				self.dQ_exp = [scipy.random.normal(self.dQ_fit[i],self.noise) for i in xrange(self.npoints)]
 				self.dQ_fit = None
 			else:
 				self.ddQ = [1.0]*self.npoints

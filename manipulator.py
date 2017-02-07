@@ -1,10 +1,4 @@
-from math import fabs,sqrt,ceil
-
-import matplotlib
-matplotlib.use("TkAgg")
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
-from matplotlib import pyplot
+import math
 
 from Tkinter	import *
 
@@ -42,7 +36,7 @@ class Manipulator(Tk):
 		grid_counter = 0
 		for p in self.params:
 			value = self.sim.get_model_param(p)
-			self.sliders.append( Scale(self, from_=-1*fabs(value), to=2*fabs(value), label=p, length=500, orient=HORIZONTAL) )
+			self.sliders.append( Scale(self, from_=-1.0*math.fabs(value), to=2.0*math.fabs(value), label=p, length=500, orient=HORIZONTAL) )
 			self.sliders[-1].grid( row=self.size, column=1 )
 			self.sliders[-1].set( value )
 
@@ -119,26 +113,35 @@ class Visualizer(Toplevel):
 		Toplevel.__init__(self,master)
 		self.master = master
 
+		from __init__ import MATPLOTLIB_BACKEND
+		if MATPLOTLIB_BACKEND != None:
+			print "manipulator: Setting matplotlib backend to \"TkAgg\"."
+			
+		import matplotlib
+		matplotlib.use("TkAgg")
+
+		from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+		from matplotlib.figure import Figure
+		from matplotlib import pyplot
+
 		self.title(title)
 		self.resizable(True,True)
 		self.fig = pyplot.figure()
 		pyplot.ion()
 
-		self.experiments = []
-		self.initialize()
-
-	def initialize(self):
 		self.canvas = FigureCanvasTkAgg(self.fig, master=self)
 		self.canvas.show()
 		self.canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
 		self.canvas._tkcanvas.pack(side=TOP, fill=BOTH, expand=1)
 		self.update()
 
+		self.experiments = []
+
 	def add_experiment(self,experiment):
 		self.experiments.append(experiment)
 
 	def make_figures(self):
-		size = ceil(sqrt(len(self.experiments)))
+		size = math.ceil(math.sqrt(len(self.experiments)))
 		self.axs,self.exp,self.fit = [],[],[]
 		for i,e in enumerate(self.experiments):
 			self.axs.append( self.fig.add_subplot(size,size,i+1) )

@@ -1,7 +1,5 @@
 import os
-import numpy as np
-
-_MATPLOTLIB_BACKEND = None #None for default
+import scipy
 
 class MSExperiment():
 	def __init__(self, file):
@@ -17,7 +15,7 @@ class MSExperiment():
 		self.npoints = len(PConc)
 		assert len(LConc) == self.npoints
 		
-		data = np.genfromtxt( file, usecols=xrange(1,self.npoints+1), unpack=True )
+		data = scipy.genfromtxt( file, usecols=xrange(1,self.npoints+1), unpack=True )
 		assert len(data) == self.npoints
 		self.npops = len(data[0])/2
 		for i in xrange(len(data)):
@@ -33,15 +31,15 @@ class MSExperiment():
 			self.PopFits.append( [0.0]*self.npops )
 	
 	def make_plot(self,hardcopy=False,hardcopydir='.',hardcopyprefix='', hardcopytype='png'):
+		from __init__ import MATPLOTLIB_BACKEND
 		try:
-			if _MATPLOTLIB_BACKEND != None:
-				import matplotlib
-				matplotlib.use(_MATPLOTLIB_BACKEND)
-			import matplotlib.pyplot as pyplot
+			matplotlib.get_backend()
 		except:
-			pyplot = None
-
-		if pyplot == None: return
+			if MATPLOTLIB_BACKEND != None:
+				import matplotlib
+				matplotlib.use(MATPLOTLIB_BACKEND)
+		
+		import matplotlib.pyplot as pyplot
 		if hardcopy: fig = pyplot.figure()
 
 		pyplot.clf()

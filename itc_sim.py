@@ -1,9 +1,9 @@
-from multiprocessing	import cpu_count,Queue
-from copy				import copy
+import copy
+import multiprocessing
+
 from itc_experiment		import *
 from itc_calc			import ITCCalc
-from thermo				import *
-from thermo				import _units
+from thermo				import _UNITS
 from utilities			import *
 
 class ITCSim:
@@ -13,7 +13,7 @@ class ITCSim:
 
 	def __init__(self,T0=298.15,units='J',verbose=False,threads=None):
 		self.T0	= T0 # reference temperature
-		assert units in thermo._units
+		assert units in _UNITS
 		self.units = units
 		self.size = 0 # number of experiments
 		self.experiments = []
@@ -21,10 +21,10 @@ class ITCSim:
 		self.verbose = verbose
 
 		self.model = None
-		self.in_Queue,self.out_Queue = Queue(),Queue()
+		self.in_Queue,self.out_Queue = multiprocessing.Queue(),multiprocessing.Queue()
 
 		if threads==None or threads<1:
-			threads = cpu_count()
+			threads = multiprocessing.cpu_count()
 		self.workers = [None] * threads
 
 	def __str__(self):
@@ -57,7 +57,7 @@ class ITCSim:
 		return self.experiments[index]
 
 	def get_experiments(self):
-		return copy(self.experiments)
+		return copy.copy(self.experiments)
 
 	def get_experiment_by_title(self, title):
 		for E in self.experiments:
@@ -167,7 +167,7 @@ class ITCSim:
 				self.in_Queue.put( (self.model.get_params(units=self.units),E) )
 		else:
 			if self.size == 0:
-				print "No experiments to simulate."
+				print "itc_sim: No experiments to simulate."
 				return None
 			for E in self.get_experiments():
 				self.in_Queue.put( (self.model.get_params(units=self.units),E) )
@@ -179,7 +179,7 @@ class ITCSim:
 		for title,data in queue_contents:
 			# in the case of an exception during model execution, title will be None
 			if title == None:
-				print "\nFatal error during model evalution: %s"%(data)
+				print "\nitc_sim: Fatal error during model evalution: %s"%(data)
 				self.done()
 				return None
 			else:

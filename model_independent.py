@@ -1,6 +1,7 @@
 import warnings
-import scipy.optimize as optimize
-from math		import exp,pow,sqrt,log10
+import math
+import scipy
+import scipy.optimize
 
 from itc_model	import ITCModel
 from thermo		import *
@@ -30,7 +31,7 @@ class OneMode(ITCModel):
 
 		Q = [0.0]*len(concentrations)
 		for i,c in enumerate(concentrations):
-			Q[i] = ((n1*dH)/2.0)*(1.0 +(c['Ligand']/(n1*c['Macromolecule'])) +(1.0/(n1*Ka*c['Macromolecule'])) -sqrt( pow(1 +(c['Ligand']/(n1*c['Macromolecule'])) +(1.0/(n1*Ka*c['Macromolecule'])), 2.0) -((4.0*c['Ligand'])/(n1*c['Macromolecule']))))
+			Q[i] = ((n1*dH)/2.0)*(1.0 +(c['Ligand']/(n1*c['Macromolecule'])) +(1.0/(n1*Ka*c['Macromolecule'])) -math.sqrt( math.pow(1 +(c['Ligand']/(n1*c['Macromolecule'])) +(1.0/(n1*Ka*c['Macromolecule'])), 2.0) -((4.0*c['Ligand'])/(n1*c['Macromolecule']))))
 		return Q
 
 class NModes(ITCModel):
@@ -61,8 +62,8 @@ class NModes(ITCModel):
 			p[i*3 +2]	= dH_vant_Hoff( self.params[dH], self.params[dCp], T, T0 )
 			
 			if min(self.precision,0.01/p[i*3 +1]) < self.precision:
-				warnings.warn( "Convergence precision is greater than 1%% of mode %i Kd (%0.1E). Setting precision to %0.0E."%(i+1,1.0/p[i*3 +1],10**int(-1*log10(p[i*3 +1]) -3)), stacklevel=8 )
-				self.precision = 10**int(-1*log10(p[i*3 +1]) -3)
+				warnings.warn( "Convergence precision is greater than 1%% of mode %i Kd (%0.1E). Setting precision to %0.0E."%(i+1,1.0/p[i*3 +1],10**int(-1*math.log10(p[i*3 +1]) -3)), stacklevel=8 )
+				self.precision = 10**int(-1*math.log10(p[i*3 +1]) -3)
 
 		def _get_free(Lfree,Ltot,Ptot):
 			Lbound = 0.0
@@ -73,7 +74,7 @@ class NModes(ITCModel):
 
 		Q = [0.0]*n
 		for j,c in enumerate(concentrations):
-			Lfree = optimize.brentq( _get_free, 0.0, c['Ligand'], args=(c['Ligand'],c['Macromolecule']), xtol=self.precision, disp=True )
+			Lfree = scipy.optimize.brentq( _get_free, 0.0, c['Ligand'], args=(c['Ligand'],c['Macromolecule']), xtol=self.precision, disp=True )
 			for i in xrange(self.nmodes):
 				stoich,Ka,dH = p[i*3:i*3+3]
 				Q[j] +=( stoich * dH * (Ka*Lfree)/(Ka*Lfree +1) )

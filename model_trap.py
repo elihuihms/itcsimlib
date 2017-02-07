@@ -1,6 +1,6 @@
 import os
-from scipy		import array,dtype,zeros
-from ctypes		import cdll,c_double,c_int
+import scipy
+import ctypes
 
 from itc_model	import ITCModel
 from thermo		import *
@@ -16,27 +16,27 @@ class TRAP_DLL_Model(ITCModel):
 		self.add_component('Trp',description='A molecule of tryptophan')
 	
 	def loadDLL(self,lib):
-		self.lib = cdll.LoadLibrary(os.path.join( os.path.dirname(__file__), lib ))
-		return self.lib.setup(c_int(self.nsites),c_int(self.circular))
+		self.lib = ctypes.cdll.LoadLibrary(os.path.join( os.path.dirname(__file__), lib ))
+		return self.lib.setup(ctypes.c_int(self.nsites),ctypes.c_int(self.circular))
 		
 	def stop(self):
 		return self.lib.close()
 
 	def calc(self,T,concentrations,params):
 		n = len(concentrations)
-		Q = zeros(n,dtype('d'))
+		Q = scipy.zeros(n,scipy.dtype('d'))
 		
 		# patch for compatibility with general model nomenclature
 		if 'TRAP' not in concentrations[0]:
 			concentrations = [{'TRAP':concentrations[i]['Macromolecule'],'Trp':concentrations[i]['Ligand']} for i in xrange(n)]
 				
 		status = self.lib.calc(
-			c_int( n ),
-			c_double( T ),
-			array([c['TRAP'] for c in concentrations],dtype('d')).ctypes,
-			array([c['Trp']  for c in concentrations],dtype('d')).ctypes,
+			ctypes.c_int( n ),
+			ctypes.c_double( T ),
+			scipy.array([c['TRAP'] for c in concentrations],scipy.dtype('d')).ctypes,
+			scipy.array([c['Trp']  for c in concentrations],scipy.dtype('d')).ctypes,
 			Q.ctypes,
-			array(params,dtype('d')).ctypes
+			scipy.array(params,scipy.dtype('d')).ctypes
 		)
 		
 		if status != 0:

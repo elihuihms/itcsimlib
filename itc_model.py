@@ -1,5 +1,4 @@
 from thermo import *
-from copy	import deepcopy
 
 try:
 	_tmp = OrderedDict()
@@ -34,7 +33,7 @@ class ITCModel():
 						
 	# setters
 	def set_units(self,units):
-		self.units = units
+		self.units = units		
 
 	def set_param(self, param, value ):
 		if self._param_meta[param][5]:
