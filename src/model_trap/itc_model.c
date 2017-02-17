@@ -122,7 +122,7 @@ int setFree( struct mWorkspace *w )
 	if(status != GSL_SUCCESS)
 		return status;
 
-	double a,b;
+	double r,a,b;
 	do
 	{
 		iter++;

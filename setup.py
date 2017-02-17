@@ -20,19 +20,17 @@ if LooseVersion(matplotlib.__version__) < LooseVersion("1.3"):
 import itcsimlib
 
 model_sources = ["src/model_trap/itc_model.c","src/model_trap/itc_sim.c","src/model_trap/itc_calc.c"]
+model_libraries = ['m','gsl','gslcblas']
 model_sk = Extension("itcsimlib.model_trap_sk",
-	libraries = ['m','gslcblas','gsl'],
-	extra_compile_args=['-std=c99'],
+	libraries = model_libraries, extra_compile_args=['-std=c99'],
 	sources=["src/model_trap/energies_sk.c"]+model_sources,
 	)		
 model_ik = Extension("itcsimlib.model_trap_ik",
-	libraries = ['m','gslcblas','gsl'],
-	extra_compile_args=['-std=c99'],
+	libraries = model_libraries, extra_compile_args=['-std=c99'],
 	sources=["src/model_trap/energies_ik.c"]+model_sources,
 	)		
 model_nn = Extension("itcsimlib.model_trap_nn",
-	libraries = ['m','gslcblas','gsl'],
-	extra_compile_args=['-std=c99'],
+	libraries = model_libraries, extra_compile_args=['-std=c99'],
 	sources=["src/model_trap/energies_nn.c"]+model_sources,
 	)		
 
