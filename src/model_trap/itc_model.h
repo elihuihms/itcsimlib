@@ -1,8 +1,6 @@
-#ifndef _itc_model_h_
-#define _itc_model_h_
+#ifndef ITC_MODEL_H
+#define ITC_MODEL_H
 
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_math.h>
 #include <gsl/gsl_roots.h>
 
 struct mWorkspace
@@ -20,7 +18,7 @@ struct mWorkspace
 	double*	probs;
 	gsl_root_fsolver*		fsolver_s;
 	gsl_function			fsolver_F;
-} mWorkspace;
+};
 
 int setupModelWorkspace( struct mWorkspace *w );
 

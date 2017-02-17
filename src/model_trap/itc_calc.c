@@ -49,7 +49,7 @@ int calc( int n, double temp, double* P, double* L, double* Q, double *params )
     return status;
 }
 
-int close()
+int close(void)
 {
 	freeSimWorkspace(sim,model);
 	freeModelWorkspace(model);

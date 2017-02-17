@@ -1,5 +1,5 @@
-#ifndef _itc_sim_h_
-#define _itc_sim_h_
+#ifndef ITC_SIM_H
+#define ITC_SIM_H
 
 #include "itc_model.h"
 
@@ -7,7 +7,7 @@ struct sWorkspace
 {
 	struct	mWorkspace *model;
 	double*	enthalpies;
-} sWorkspace;
+};
 
 int setupSimWorkspace( struct sWorkspace *sim, struct mWorkspace model );
 

@@ -1,0 +1,18 @@
+SOURCES=itc_model.c itc_sim.c itc_calc.c 
+
+all: model_trap_sk model_trap_ik model_trap_nn
+
+# Saroff and Kiefer's 1998 model
+model_trap_sk:
+	@CC@ -shared -std=c99 @CFLAGS@ @LIBS@ $(SOURCES) energies_sk.c -o ../../itcsimlib/model_trap_sk.so
+
+# Ian Kleckner's zero, one, or two neighbor model
+model_trap_ik:
+	@CC@ -shared -std=c99 @CFLAGS@ @LIBS@ $(SOURCES) energies_ik.c -o ../../itcsimlib/model_trap_ik.so
+
+# generalized nearest-neighbor model
+model_trap_nn:
+	@CC@ -shared -std=c99 @CFLAGS@ @LIBS@ $(SOURCES) energies_nn.c -o ../../itcsimlib/model_trap_nn.so
+
+
+

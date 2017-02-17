@@ -1,16 +1,54 @@
-#!/usr/bin/env python
-
 import os
 import sys
-import setuptools
-import distutils.ccompiler as C
-import itcsimlib
 
 if sys.version_info < (2, 6, 0):
-	sys.stderr.write("itcsimlib requires Python 2.6 or newer.\n")
+	sys.stderr.write("Error: itcsimlib requires Python 2.6 or newer.\n")
 	sys.exit(-1)
 
-setuptools.setup(
+from distutils.core import setup,Extension
+from distutils.version import LooseVersion
+from distutils.command import build
+
+import scipy
+if LooseVersion(scipy.__version__) < LooseVersion("0.11"):
+	print "Error: itcsimlib requires scipy 0.11 or higher."
+
+import matplotlib
+if LooseVersion(matplotlib.__version__) < LooseVersion("1.3"):
+	print "Error: itcsimlib requires matplotlib 1.3 or higher."
+
+import itcsimlib
+
+model_sources = ["src/model_trap/itc_model.c","src/model_trap/itc_sim.c","src/model_trap/itc_calc.c"]
+model_sk = Extension("itcsimlib.model_trap_sk",
+	libraries = ['m','gslcblas','gsl'],
+	extra_compile_args=['-std=c99'],
+	sources=["src/model_trap/energies_sk.c"]+model_sources,
+	)		
+model_ik = Extension("itcsimlib.model_trap_ik",
+	libraries = ['m','gslcblas','gsl'],
+	extra_compile_args=['-std=c99'],
+	sources=["src/model_trap/energies_ik.c"]+model_sources,
+	)		
+model_nn = Extension("itcsimlib.model_trap_nn",
+	libraries = ['m','gslcblas','gsl'],
+	extra_compile_args=['-std=c99'],
+	sources=["src/model_trap/energies_nn.c"]+model_sources,
+	)		
+
+class check_c_build(build.build):
+	user_options=build.build.user_options + [("build-c-models",None,"Compile TRAP+Tryptophan models written in C")]
+
+	def initialize_options(self, *args, **kwargs):
+		self.build_c_models = None
+		build.build.initialize_options(self, *args, **kwargs)
+
+	def run(self, *args, **kwargs):
+		if self.build_c_models :
+			self.distribution.ext_modules = [model_sk,model_ik,model_nn]
+		build.build.run(self, *args, **kwargs)
+		
+setup(
 	name				= 'itcsimlib',
 	version				= itcsimlib.__version__,
 	license				= itcsimlib.__license__,
@@ -21,10 +59,6 @@ setuptools.setup(
 	url					= u'https://github.com/elihuihms/itcsimlib',
 	download_url		= u'https://github.com/elihuihms/itcsimlib/archive/master.zip',
 	platforms			= 'any',
-	install_requires	= [
-		'matplotlib>=1.3',
-		'scipy>=0.11',
-	],
 	classifiers			= [
 		'Topic :: Scientific/Engineering',
 		'Development Status :: 3 - Alpha',
@@ -32,25 +66,8 @@ setuptools.setup(
 		'License :: OSI Approved :: GNU General Public License v2 (GPLv2)'
 	],
 	packages=['itcsimlib'],
+	ext_modules = [],
+	cmdclass={
+		'build':check_c_build,
+	},
 )
-
-# Compile C-based models used in 2017 Bioinformatics paper
-compiler = C.new_compiler(verbose=1)
-compiler.set_libraries(["m","gslcblas","gsl"])
-compiler_arguments = ["-std=c99","-O2"]
-
-if sys.platform.startswith('linux'):
-	compiler_arguments.append("-fPIC")
-
-objects = compiler.compile(['itcsimlib/model_trap/itc_sim.c','itcsimlib/model_trap/itc_model.c'],
-	extra_preargs=compiler_arguments,
-	output_dir="./build")
-
-compiler.set_link_objects(objects)
-
-for s in ['energies_ik','energies_sk','energies_nn']:
-	model_object = compiler.compile(["itcsimlib/model_trap/%s.c"%s],
-		extra_preargs=compiler_arguments,
-		output_dir="./build")
-
-	compiler.link(s, model_object, "%s.so"%s, output_dir="./build/lib/itcsimlib")

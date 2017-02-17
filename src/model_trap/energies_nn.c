@@ -2,9 +2,10 @@
 	configuration energies/enthalpies as described in Elihu's thesis
 */
 
+#include "energies.h"
 #include "itc_model.h"
 #include "itc_sim.h"
-#include "energies.h"
+#include <math.h>
 
 int permute( int i, int n );
 int permute( int i, int n )

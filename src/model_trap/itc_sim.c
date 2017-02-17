@@ -1,6 +1,4 @@
 #include "itc_sim.h"
-#include "itc_model.h"
-
 #include <math.h>
 
 int setupSimWorkspace( struct sWorkspace *sim, struct mWorkspace model )

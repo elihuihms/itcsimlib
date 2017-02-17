@@ -1,5 +1,4 @@
 #include "itc_model.h"
-
 #include <math.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_math.h>
@@ -123,7 +122,7 @@ int setFree( struct mWorkspace *w )
 	if(status != GSL_SUCCESS)
 		return status;
 
-	double r,a,b;
+	double a,b;
 	do
 	{
 		iter++;

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
+import unittest
 import os
 import shutil
 import tempfile
-import unittest
 import uuid
 import pickle
 
@@ -82,7 +82,7 @@ class TestITCExperiment(TestITCBase):
 class TestITCSIM(TestITCBase):
 	def setUp(self):
 		TestITCBase.setUp(self)
-		self.sim = ITCSim(T0=298.15,units="kcal",verbose=True)
+		self.sim = ITCSim(T0=298.15,units="kcal",verbose=True,threads=1)
 		
 	def tearDown(self):
 		TestITCBase.tearDown(self)
