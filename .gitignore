@@ -28,6 +28,8 @@ __pycache__/
 *.py[cod]
 
 # distutils output
+build/
+dist/
 MANIFEST
 
 # MacOS garbage
