@@ -65,6 +65,9 @@ class ITCSim:
 				return E
 		raise KeyError("Experiment \"%s\" not found in simulation."%(title))
 
+	def get_units(self):
+		return self.units
+
 	def get_model(self):
 		return self.model
 

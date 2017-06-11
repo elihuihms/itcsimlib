@@ -46,7 +46,7 @@ class NonAdditiveRecorder(NonAdditive):
 	
 		# set the weights of each configuration
 		NonAdditive.set_probabilities(self,totalP,totalL,T)
-		if log == None:
+		if self.log == None:
 			return
 		
 		# get the configuration-weighted number of sites either unoccupied, with no neighbors, one, or two neighboring sites occupied

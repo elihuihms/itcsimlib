@@ -8,11 +8,11 @@ except:
 class ITCModel():
 
 	def __init__(self):		
+		self.units = "J"
 		self.params = OrderedDict()
 		self.components = []
-		self.units = "J"
-
-		self._param_meta, self._component_meta = {},{}
+		self._param_meta = {}
+		self._component_meta = {}
 		
 	def add_parameter(self, name, type, bounds=[None,None], default=0.0, linked='', description=''):
 		assert name not in self.params.keys()
@@ -35,11 +35,11 @@ class ITCModel():
 	def set_units(self,units):
 		self.units = units		
 
-	def set_param(self, param, value ):
-		if self._param_meta[param][5]:
-			self.params[param] = convert_to_J(self.units,value)
+	def set_param(self, name, value ):
+		if self._param_meta[name][5]:
+			self.params[name] = convert_to_J(self.units,value)
 		else:
-			self.params[param] = value
+			self.params[name] = value
 
 	def set_params(self, *args, **kwargs):
 		for i in xrange(len(args)):
