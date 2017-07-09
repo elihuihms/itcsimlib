@@ -2,6 +2,25 @@ from math import pi,sin,cos
 from pyx import *
 
 def draw_ising_lattices(path, model, size=1.0):
+	"""Draw a PDF depicting the energetically-unique configurations of an Ising model, with annotations.
+	
+	Arguments
+	---------
+	path : string
+		The path at which to save the file.
+	model : Ising(ITCModel)
+		The model to use.
+	size : float
+		The radius (for circular lattices) or width (for linear lattices), in cm of the depictions.
+	
+	Returns
+	-------
+	None
+	
+	Notes
+	-----
+		Uses the current model parameter values to determine energetically degenerate (w.r.t. free energy) configurations.
+	"""
 	c = canvas.canvas()
 	model.set_energies(273.15,273.15) # ensure that this is run at least once to populate config_terms
 	
@@ -39,6 +58,8 @@ def _draw_linear_lattice(c,loc,w,n,key=None,energy=None,degeneracy=None):
 		if key[i] > 0:
 			c.fill(path.circle(x,y+(i*w)-(sy/2.0)+(w/2.0),w*0.3), [color.rgb.blue])
 		c.stroke(path.circle(x,y+(i*w)-(sy/2.0)+(w/2.0),w*0.4), [style.linewidth.Thick])
+		
+	# TODO: Need to figure out an appropriate way to annotate linear configs
 
 def _draw_circular_lattice(c,loc,r,n,key=None,energy=None,degeneracy=None):
 	x,y = loc

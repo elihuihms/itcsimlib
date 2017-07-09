@@ -84,7 +84,7 @@ sim.add_experiment_synthetic(
 sim.set_model( MyModel() )
 
 # Print the full information for our model, just for fun.
-print sim.get_model()
+print sim.model
 
 # Set the values for the parameters we defined in the model. Let's first model positive cooperativity by making the free energy change for the fourth and fifth binding steps more favorable:
 sim.set_model_params(dG1=-10, dH1=-10, dG2=-12, dH2=-5)

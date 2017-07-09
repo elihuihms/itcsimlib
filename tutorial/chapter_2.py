@@ -89,7 +89,8 @@ sim.run()
 sim.make_plots(hardcopy=True,hardcopyprefix="optimized_")
 
 # We can also write the parameters to a file in order to have a permanent copy:
-sim.write_params( "chapter_2_parameters.txt" )
+from utilities			import write_params_to_file
+write_params_to_file( "chapter_2_parameters.txt", params=sim.get_model_params() )
 
 # Don't forget to call this at the end of each script:
 sim.done()

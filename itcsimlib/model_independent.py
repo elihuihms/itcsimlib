@@ -7,9 +7,7 @@ from itc_model	import ITCModel
 from thermo		import *
 
 class OneMode(ITCModel):
-	"""
-	A four-parameter phenomological model describing binding to a single site type
-	"""
+	"""A four-parameter phenomological model describing binding to a single site type."""
 
 	def __init__(self):
 		ITCModel.__init__(self)
@@ -35,9 +33,7 @@ class OneMode(ITCModel):
 		return Q
 
 class NModes(ITCModel):
-	"""
-	A 4n-parameter phenomological model describing binding to n independent types of sites
-	"""
+	"""A 4n-parameter phenomological model describing binding to n independent types of sites."""
 
 	def __init__(self,modes=2):
 		ITCModel.__init__(self)

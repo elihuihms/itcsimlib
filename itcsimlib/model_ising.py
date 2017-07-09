@@ -12,8 +12,40 @@ except:
 	from ordered_dict	import OrderedDict
 
 class Ising(ITCModel):
-
-	def __init__(self,nsites=3,circular=1):
+	"""An ITC model based on ligand binding to an Ising lattice.
+	
+	Attributes
+	----------
+	nconfigs : int
+		The total number of possible configurations of the lattice.
+	configs : list of list of ints
+		The occupation state (1=bound, 0=unbound) of each site in each lattice configuration.
+	bound : list of ints
+		The number of ligands bound to each lattice configuration.
+	weights : list of floats
+		The absolute (normalized) probability of each configuration.
+	gibbs : list of floats
+		The free energy of each configuration.
+	enthalpies: list of floats
+		The enthalpy of each configuration.
+	precision: float
+		The precision in ligand concentration required for convergence during set_probabilities()
+	parameter_symbols : dict of sympy symbols
+		Convenience container for the sympy symbols corresponding to the model parameter names, ultimately used to construct the symbolic configuration expressions.
+	config_expressions : list of sympy expressions
+		The symbolic expression of the configuration's free energy.
+	"""
+		
+	def __init__(self,nsites=3,circular=True):
+		"""The constructor for the base Ising binding model.
+		
+		Arguments
+		---------
+		nsites : int
+			The number of potential binding sites in the lattice.
+		circular : boolean
+			Is the lattice circular?
+		"""
 		ITCModel.__init__(self)
 		
 		self.nsites,self.circular = nsites,circular
@@ -36,15 +68,30 @@ class Ising(ITCModel):
 		self.add_component('Ligand',description='A lattice-binding ligand')
 
 	def add_parameter(self, name, type, **kwargs):
+		"""Wrapper for the typical ITC model add_parameter, with the added tweak that a sympy symbol is created for eventually generating the model's partition function."""
 		ITCModel.add_parameter(self, name, type, **kwargs)
+		
 		try:
 			import sympy
 		except:
-			return
-			
+			return	
 		self.parameter_symbols[name] = sympy.symbols(name)
 
 	def get_site_occupancy(self,config,site):
+		"""Return whether a given site is occupied or not, correctly accounting for circular lattices and lattice indicies <0 or >n.
+		
+		Arguments
+		---------
+		config : int
+			The lattice configuration index
+		site : int
+			The lattice site index
+		
+		Returns
+		-------
+		boolean or None
+			Whether the site is occupied (bound), or None if the lattice is nonlinear and the site index is meaningless
+		"""
 		if site < 0:
 			if not self.circular:
 				return None
@@ -54,25 +101,27 @@ class Ising(ITCModel):
 				return None
 			return self.configs[config][site%self.nsites] == 1
 		return self.configs[config][site] == 1
-		
-	def set_precision(self,precision=1E-9):
-		"""Sets the precision in free ligand concentration for set_probabilities()"""
-		self.precision = precision
-		
-	def set_probabilities(self,totalP,totalL,T):
-		"""Set the normalized weights (probabilities) of each configuration at the specified conditions
 
-		Arguments:
-			totalP (float): The total concentration of binding (protein) lattices
-			totalL (float): The total concentration of ligands
-			T (float): The experimental temperature
+	def set_probabilities(self,totalP,totalL,T):
+		"""Set the normalized weights (probabilities) of each configuration at the specified free energies and component concentrations.
+
+		Arguments
+		---------
+		totalP : float
+			The total concentration of binding lattices.
+		totalL : float
+			The total concentration of ligands.
+		T : float
+			The experimental temperature.
 			
-		Returns:
-			(float): The free concentration of ligand
+		Returns
+		-------
+		float
+			The free concentration of ligand.
 		"""
 
 		def _freeL_dev(freeL): # 
-			"""Return the deviation between predicted and actual free ligand concentration """
+			# Return the deviation between predicted and actual free ligand concentration
 			
 			# set the probability of each configuration at the free ligand concentration
 			self.weights = [math.exp( (-1.0 * self.gibbs[i]) / ( _R * T ) ) * freeL**self.bound[i] for i in xrange(self.nconfigs) ]
@@ -93,7 +142,22 @@ class Ising(ITCModel):
 		return freeL
 		
 	def Q(self,T0,T,concentrations):
-		"""Return the enthalpy of the system at each of the specified concentrations """
+		"""Return the enthalpy of the system at each of the specified component concentrations.
+		
+		Arguments
+		---------
+		T0 : float
+			The reference temperature of the simulation.
+		T : float
+			The temperature of the experiment to simulate.
+		concentrations : list of dicts
+			The concentrations of each component at each titration point.
+		
+		Returns
+		-------
+		list of floats
+			The total enthalpy of the system at each injection point.
+		"""
 		
 		# set the free energies (and enthalpic energies if necessary) of each configuration
 		self.set_energies(T0,T)
@@ -110,6 +174,20 @@ class Ising(ITCModel):
 		return Q
 			
 	def get_partition_function(self,substitute_Ks=True,full_simplify=True):
+		"""Return the partition function of the binding model as a sympy expression.
+		
+		Arguments
+		---------
+		substitute_Ks : boolean
+			Improve condensation of the partition function by converting free energies to binding constants, where possible.
+		full_simplify : boolean
+			Perform a final reduction of terms for the compiled partition function?
+		
+		Returns
+		-------
+		sympy object
+			The symbolic partition function for the model.
+		"""
 		import sympy
 
 		self.set_energies(273.15,273.15) # ensure that this is run at least once to populate config_terms
@@ -142,6 +220,19 @@ class Ising(ITCModel):
 		return ret
 
 	def set_energies(self,T0,T):
+		"""Set the free and enthalpic energy of each lattice configuration using the current parameter values. This method is a stub that child classes should replace.
+		
+		Arguments
+		---------
+		T0 : float
+			The reference temperature of the simulation.
+		T : float
+			The current temperature of the system.
+		
+		Returns
+		-------
+		None
+		"""
 		self.reset_partition_function()
 		
 		for i in xrange(self.nconfigs):
@@ -150,8 +241,7 @@ class Ising(ITCModel):
 		raise NotImplementedError("Valid ITC Ising models should implement this!")
 
 class FullAdditive(Ising):
-	"""An Ising-type model, in which ligands bind to either a linear or circular lattice.
-Coupling can occur to both unoccupied and occupied lattice points."""
+	"""An Ising-type model, in which ligands bind to either a linear or circular lattice. Coupling can occur to both unoccupied and occupied lattice points."""
 
 	def __init__(self,nsites=3,circular=1):
 		Ising.__init__(self,nsites,circular)
@@ -205,8 +295,7 @@ Coupling can occur to both unoccupied and occupied lattice points."""
 		return
 
 class HalfAdditive(Ising):
-	"""An Ising-type model, in which ligands bind to either a linear or circular lattice.
-Coupling only occurs between occupied lattice points."""
+	"""An Ising-type model, in which ligands bind to either a linear or circular lattice. Coupling only occurs between occupied lattice points."""
 
 	def __init__(self,nsites=3,circular=1):
 		Ising.__init__(self,nsites,circular)
@@ -242,8 +331,7 @@ Coupling only occurs between occupied lattice points."""
 		return
 
 class NonAdditive(Ising):
-	"""An Ising-type model, in which ligands bind to either a linear or circular lattice.
-Binding thermodynamics depend upon whether zero, one, or both neighboring sites are occupied."""
+	"""An Ising-type model, in which ligands bind to either a linear or circular lattice. Binding energy depends upon whether zero, one, or both neighboring sites are occupied."""
 
 	def __init__(self,nsites=3,circular=1):
 		Ising.__init__(self,nsites,circular)

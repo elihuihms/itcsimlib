@@ -179,4 +179,4 @@ if __name__ == "__main__":
 	sim.run()
 	sim.make_plots(hardcopy=True,hardcopytype='png',hardcopyprefix='post_')
 	sim.done()
-	sim.get_experiments()[0].export_to_file("PLH_20160525_TRAP_populations_EDDA.fit")
+	sim.experiments[0].export_to_file("PLH_20160525_TRAP_populations_EDDA.fit")

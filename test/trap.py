@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 
 import unittest
+import sys
 
+try:
+	from itcsimlib import *
+except ImportError:
+	sys.path.append(os.path.abspath(".."))
+	from itcsimlib import *
+from itcsimlib.utilities import *
 from itcsimlib.model_trap import *
 
 from model import TestModel

@@ -13,29 +13,35 @@ except:
 class ITCFit:
 	"""A class for optimizing model parameters to accurately fit experimental data.
 
-	Attributes:
-		sim (ITCSim): The ITCSim object containing experimental data to replicate.
-		model (ITCModel): The model to use.
-		bounds (dict of tuples): A parameter-name keyed dict of low and high bounds to enforce during fitting.
-		method (string): The optimization algorithm to use.
-		method_args (dict): Arguments to pass to the optimization algorithm.
-		verbose (boolean): Print additional information to the console?
-		chisq (float): The most recently evaluated goodness-of-fit chisquare.
+	Attributes
+	----------
+	model : ITCModel
+		The model to use for fitting the experimental data.
+	bounds : dict of tuples
+		A parameter-name keyed dict of low and high bounds to enforce during fitting (retrieved from the model itself, or explicitly provided by the user).
+	chisq : float
+		The most recently evaluated goodness-of-fit chisquare.
 	"""
 
 	def __init__(self, sim, method='simplex', method_args={}, verbose=False):
 		"""Constructor function for the ITCFit object.
 
-		Arguments:
-			sim (ITCSim): The ITCSim object that possesses the experimental data to replicate.
-			bounds (dict of tuples): A parameter-name keyed dict of low and high bounds to enforce during fitting.
-			method (string): The optimization algorithm to use.
-			method_args (dict): Arguments to pass to the optimization algorithm.
-			verbose (boolean): Print additional information to the console?
+		Arguments
+		---------
+		sim : ITCSim
+			The ITCSim object that possesses the experimental data to replicate.
+		bounds : dict of tuples
+			A parameter-name keyed dict of low and high bounds to enforce during fitting.
+		method : string
+			The optimization algorithm to use.
+		method_args : dict
+			Arguments to pass to the optimization algorithm (method specific).
+		verbose : boolean
+			Print additional information to the console?
 		"""
 
 		self.sim = sim
-		self.model	= self.sim.get_model()
+		self.model	= self.sim.model
 		self.method	= method
 		self.method_args = method_args
 		self.verbose = verbose
@@ -61,21 +67,30 @@ class ITCFit:
 		
 	def set_sim(self, sim):
 		self.sim = sim
-		self.model = self.sim.get_model()
+		self.model = self.sim.model
 		
 	def get_sim(self):
 		return self.sim
 	
 	def add_bounds(self, param, low=None, high=None):
-		"""Add low and/or high boundaries for a specified parameter.
+		"""Add low and/or high boundaries for the specified parameter.
 
-		Args:
-			param (string): The name of the parameter to create the boundary for
-			low (float): The lower boundary for the parameter, or None for no boundary
-			high (float): The upper boundary for the parameter, or None for no boundary
+		Arguments
+		---------
+		param : string
+			The name of the parameter to create the boundary for
+		low : float
+			The lower boundary for the parameter, or None for no boundary
+		high : float
+			The upper boundary for the parameter, or None for no boundary
 
-		Returns:
-			None
+		Returns
+		-------
+		None
+		
+		Notes
+		-----
+			Implementation of parameter boundaries is fit method dependent and can be unpredictable. Use at your own risk, and sparingly.
 		"""
 
 		assert param in self.model.get_param_names()
@@ -84,12 +99,19 @@ class ITCFit:
 	def optimize(self, params=[], callback=None, update_fits=False ):
 		"""Optimize the specified parameters.
 
-		Args:
-			params (dict of strings): The names of the model parameters to optimize.
-			callback (function): A callback function to call at each optimization step, will be passed a vector of the current parameter values.
+		Arguments
+		---------
+		params : dict of strings
+			The names of the model parameters to optimize.
+		callback : function
+			A callback function to call at each optimization step, will be passed a vector of the current parameter values.
+		update_fits : boolean
+			Update the dQ_fit attributes of the experiments in the simulator object?
 
-		Returns:
-			(dict,float): A parameter-name keyed dict of optimized values, and the corresponding goodness-of-fit.
+		Returns
+		_______
+		(dict,float)
+			A parameter-name keyed dict of optimized values, and the corresponding goodness-of-fit.
 		"""
 
 		if self.verbose:
@@ -133,32 +155,57 @@ class ITCFit:
 		return ret,opt[1]
 		
 	def estimate(self, params, method='bootstrap', *args, **kwargs ):
+		"""Wrapper for the two methods of estimating uncertainties in the fitted parameter values
+		
+		Arguments
+		--------
+		params : list of strings
+			The names of the model parameters to find intervals for.
+		method : string
+			The method to use for interval estimation (either "sigma" or "bootstrap")
+		*args
+			Positional arguments to pass to either estimate_sigma or estimate_bootstrap
+		**kwargs
+			Keyword arguments to pass to either estimate_sigma or estimate_bootstrap
+		
+		Returns
+		-------
+		dict of tuples
+			A parameter-name keyed dict of tuples consisting of the mean and standard deviation, or high and low values of the provided parameters.
+		"""
+					
 		assert method in ['sigma','bootstrap']
 	
 		if method == 'sigma':
 			return self.estimate_sigma( params, *args, **kwargs )
-		elif method == 'bootstrap':
+		else:
 			return self.estimate_bootstrap( params, *args, **kwargs )
 	
-	def estimate_sigma(self, params=[], opt_params=None, sigma=None, stdevs=1, estimate=0.1, method='bisect', tolerance=0.001 ):
-		"""Generate confidence intervals for optimized parameters by finding reduced chi-square +n standard deviations
-		
-		Notes:
-			Requires that the simulation model parameters already be at a (global) minima.
-			Using the secant (brent's method) is about four times slower than using a noise-tolerant bisection method.
-		
-		Args:
-			params (list of strings): The names of the model parameters to find intervals for.
-			opt_params (dict of strings): The names of the model parameters to optimize. Setting to None ensures that all available model parameters will be optimized.
-			stdevs (int) : The number of standard deviations above 
-			method (string, "bisect" or "secant") : The method used to find the root of the target function.
-			tolerance (float) : The tolerance (in standard deviations) used to find the critical parameter values.
+	def estimate_sigma(self, params=[], opt_params=None, sigma=None, stdevs=1, estimate=0.1, rootfinder='bisect', tolerance=0.001 ):
+		"""Generate high and low parameter value estimates for optimized parameters according to the provided criterion
+				
+		Arguments
+		---------
+		params : list of strings
+			The names of the model parameters to find intervals for.
+		opt_params : dict of strings
+			The names of the model parameters to optimize. Setting to None implies that all available model parameters will be optimized, except the parameter that is being evaluated.
+		sigma : float
+			The critical chisq value of the overall fit to use for estimating a parameter's expected maximum and minimum (to be used in lieu of the stdevs parameter) 
+		stdevs : int
+			The number of standard deviations above the best-fit chi-square value to use as the critical cutoff for estimating a parameter's expected maximum and minimum (to be used in lieu of the sigma parameter)
+		rootfinder : string
+			The algorithm used to find the root of the target function ("bisect" or "secant")
+		tolerance : float
+			The tolerance (in standard deviations) used to find the critical parameter values. Smaller numbers mean a more accurate estimation of a parameter's estimated maximum and minimum values.
 
-		Returns:
-			(dict of tuples): A parameter-name keyed dict of tuples consisting of the mean and standard deviation of the optimized values.
+		Returns
+		-------
+		(dict of tuples)
+			A parameter-name keyed dict of tuples consisting of the high and low estimates for each of the parameters in the "params" argument.
 		"""
 		
-		assert method in ("bisect","secant")
+		assert rootfinder in ("bisect","secant")
 				
 		# starting parameter values to restore later
 		start_params = self.sim.get_model_params().copy()
@@ -171,7 +218,7 @@ class ITCFit:
 		
 		if sigma == None: # calculate the expected sigma based on the number of observations
 			# Andrae, Rene, Tim Schulze-Hartung, and Peter Melchior. "Dos and don'ts of reduced chi-squared." arXiv preprint arXiv:1012.3754 (2010).
-			sigma = stdevs * (scipy.sqrt( 2.0 / sum([ e.npoints - len(e.skip) for e in self.sim.get_experiments() ]) ))
+			sigma = stdevs * (scipy.sqrt( 2.0 / sum([ e.npoints - len(e.skip) for e in self.sim.experiments ]) ))
 		
 		# the critical chisq is the point where the low and high parameter estimates are obtained
 		critical_chisq = self.sim.run() + sigma
@@ -201,11 +248,11 @@ class ITCFit:
 				chisq_diff = target_function( param_values[p][0] )
 			
 			# actually find the param value that provides the desired confidence interval
-			if method == "secant":
+			if rootfinder == "secant":
 				param_values[p][0] = scipy.optimize.brentq( target_function, model_params[p], param_values[p][0], xtol=tolerance )
 			else:
 				param_values[p][0] = sum(self._noisy_bisect(target_function, model_params[p], param_values[p][0], sigma, chisq_diff, tolerance))/2.0
-			
+				
 			self.sim.set_model_params(**start_params)
 			estimate_counter,param_values[p][1] = estimate,model_params[p] * (1.0+estimate)
 			chisq_diff = target_function( param_values[p][1] )
@@ -217,12 +264,12 @@ class ITCFit:
 				chisq_diff = target_function( param_values[p][1] )
 			
 			# actually find the param value that provides the desired confidence interval
-			if method == "secant":
+			if rootfinder == "secant":
 				param_values[p][1] = scipy.optimize.brentq( target_function, model_params[p], param_values[p][1], xtol=tolerance )
 			else:
 				param_values[p][1] = sum(self._noisy_bisect(target_function, model_params[p], param_values[p][1], sigma, chisq_diff, tolerance))/2.0
 
-			# From chapter 2 tutorial data (stdevs=2, method='secant'):
+			# From chapter 2 tutorial data (stdevs=2, rootfinder='secant'):
 			#{'dG': [-10.727396269988125, -11.070049429908266], 'dCp': [-0.09939296467688882, -0.1524609718306775], 'dH': [-11.493031681092932, -12.022877990152883], 'n': [1.778168415517038, 1.8276370690304506]}
 			
 		# restore initial parameter values for the next iteration
@@ -231,16 +278,23 @@ class ITCFit:
 		return param_values
 				
 	def estimate_bootstrap(self, params=[], bootstraps=1000, randomize=0.1, callback=None, logfile=None ):
-		"""Generate confidence intervals for optimized parameters by bootstrapping
+		"""Generate confidence intervals for optimized parameters by bootstrapping (also known as jackknife estimation)
 
-		Args:
-			params (list of strings): The names of the model parameters to find intervals for.
-			bootstraps (int): The number of synthetic datasets to refit.
-			randomize (float): A fraction by which to perturb the starting parameters before optimization.
-			callback (function): A callback function to call at each optimization step, will be passed a vector of the current parameter values.
-			logfile (string): A file path to write the optimized parameter values for each bootstrap dataset
+		Arguments
+		---------
+		params : list of strings
+			The names of the model parameters to find intervals for.
+		bootstraps : int
+			The number of synthetic datasets to refit.
+		randomize : float
+			A fraction by which to perturb the starting parameters before optimization.
+		callback : function
+			A callback function to call at each optimization step, will be passed a vector of the current parameter values.
+		logfile : string
+			A file path to write the optimized parameter values for each bootstrap dataset
 
-		Returns:
+		Returns
+		-------
 			(dict of tuples): A parameter-name keyed dict of tuples consisting of the mean and standard deviation of the optimized values.
 		"""
 
@@ -255,7 +309,7 @@ class ITCFit:
 
 		# store the original experimental and fit data for restoration later
 		dQ_exp,dQ_fit = [],[]
-		for E in self.sim.get_experiments():
+		for E in self.sim.experiments:
 			assert len(E.dQ_exp) == len(E.dQ_fit)
 			dQ_exp.append( E.dQ_exp[:] )
 			dQ_fit.append( E.dQ_fit[:] )
@@ -275,7 +329,7 @@ class ITCFit:
 				self.sim.set_model_param(p,self.sim.get_model_param(p) * (1+(2*random.random()-0.5)*randomize))
 
 			# replace the experimental data points with the synthetic data
-			for j,E in enumerate(self.sim.get_experiments()):
+			for j,E in enumerate(self.sim.experiments):
 				E.dQ_exp = _make_bootstrap(E.npoints,dQ_exp[j],dQ_fit[j])
 
 			# re-optimize the parameters using the new, synthetic datasets
@@ -295,7 +349,7 @@ class ITCFit:
 			self.sim.set_model_params(**start_params)
 
 		# restore original experimental data and fit for the experiments
-		for i,E in enumerate(self.sim.get_experiments()):
+		for i,E in enumerate(self.sim.experiments):
 			E.dQ_exp = dQ_exp[i]
 			E.dQ_fit = dQ_fit[i]
 

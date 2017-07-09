@@ -41,7 +41,7 @@ my_model = NModes(modes=2)
 sim.set_model( my_model )
 
 # Models have parameters that dictate their behavior. If we want to see the details of the model, all we have to do is treat it as a string, in this case we just want to print the model info to our console when we run this script.
-print sim.get_model()
+print sim.model
 
 # Once our model is set, we'll need to set it's parameters:
 sim.set_model_params(n1=1, n2=3, dG1=-11, dG2=-10, dH1=-15, dH2=+10)
@@ -50,7 +50,7 @@ sim.set_model_params(n1=1, n2=3, dG1=-11, dG2=-10, dH1=-15, dH2=+10)
 # The second binding mode occurs with a stoichiometry of 3 ligands per molecule, a slightly weaker -10 kca/mol free energy change, and an endothermic change in enthalpy of +10 kcal/mol.
 
 # Now that we've updated the model parameters, let's verify that they've been set.
-print sim.get_model()
+print sim.model
 
 # Great, but just setting the parameters doesn't really do anything. Now we need to run the simulator, which will populate our synthetic experiment. itcsimlib makes this pretty easy:
 sim.run()

@@ -58,11 +58,10 @@ files =(
 	( 'data/65C-01-TRAPstk-TrpB.txt', [0,85,91],	-5.54462468 ))
 
 for f,skip,Q_dil in files:
-	while len(sim.get_experiments()) > 0:
-		sim.remove_experiment( sim.get_experiments()[0] )
-	
+	sim.remove_all_experiments()
+
 	sim.add_experiment_file( f, skip=skip, Q_dil=Q_dil )
-	for e in sim.get_experiments():
+	for e in sim.experiments:
 		e.change_component_name('TRAP','Lattice')
 		e.change_component_name('Trp','Ligand')
 

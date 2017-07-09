@@ -15,9 +15,7 @@ sim = ITCSim(T0=273.15+40,verbose=True,threads=6)
 sim.set_model( IKi() )
 
 def optimize_dilution( x ):
-
-	for e in sim.get_experiments():
-		sim.remove_experiment( e )
+	sim.remove_all_experiments()
 		
 	sim.add_experiment_file( 'data/20C-01-TRAPstk-TrpA.txt', skip=[0],	Q_dil=x[0] )
 	sim.add_experiment_file( 'data/35C-01-TRAPstk-TrpA.txt', skip=[0],	Q_dil=x[1] )

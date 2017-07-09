@@ -83,8 +83,8 @@ for i in xrange(1):
 	sim.set_model_params(-31237.753,-36510.231,-36983.080,-47678.518,-81769.489,-75924.637,405.754,-1606.945,-1494.137)
 
 	sim.add_experiment_file( "./data/%s.txt"%(names[i]),	skip=skip[i] )
-	sim.get_experiment(0).change_component_name('TRAP','Lattice')
-	sim.get_experiment(0).change_component_name('Trp','Ligand')
+	sim.experiments[0].change_component_name('TRAP','Lattice')
+	sim.experiments[0].change_component_name('Trp','Ligand')
 
 	sim.run()
 	sim.make_plots(hardcopy=True)

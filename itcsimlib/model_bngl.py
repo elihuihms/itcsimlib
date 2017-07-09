@@ -158,15 +158,3 @@ class BNGL(ITCModel):
 			counter+=steppoints
 		return Q
 				
-			
-			
-							
-			
-			
-			
-			
-			
-			
-			
-			
-			

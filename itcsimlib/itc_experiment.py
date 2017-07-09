@@ -3,46 +3,53 @@ import uuid
 import os
 
 from thermo	import *
+from thermo import _UNITS
 from utilities	import savitzky_golay
 
 class ITCExperimentBase:
 	"""A class that encapsulates a specific ITC experiment.
 
-	Attributes:
-		title (string): A descriptive title for the experiment.
-		T (float): The experimental temperature (in Kelvin).
-		V0 (float): The volume of the calorimeter's cell, in microliters.
-		injections (list of floats): The amount (in microliters) injected at each injection point.
-		dQ_exp (list of floats): The experimental (observed) enthalpies at each injection, in Joules.
-		dQ_fit (list of floats): The predicted enthalpies (if any) at each injection, in Joules.
-		Cell (dict of floats): The starting concentrations of components in the cell, in Molar units.
-		Syringe (dict of floats): The concentrations of components in the syringe solution
-		Concentrations (list of dicts): The concentrations of each component in the cell at each titration point, in Molar units.
-		skip (list of ints): Titration points to exclude during fitting.
-		ddQ (list of floats): List of estimated errors in each titration point enthalpy.
-		spline_pts (int): Number of points to use in the Savitsky-Golay filter used to estimate errors in experimental enthalpies.
-		spline_order (int): Order of the SG filter.
-		Q_dil (float): Heat of dilution for syringe solution.
-		chisq (float): If a fit has been generated, the reduced chi-squared goodness-of-fit value.
+	Attributes
+	----------
+	chisq : float
+		If a fit has been generated, the reduced chi-squared goodness-of-fit value.
+			
+	Notes
+	-----
+		Energies are stored in Joules internally, and then converted (if necessary) to the desired unit when retrieved by the user.
 	"""
 
 	def __init__(self, T, V0, injections, dQ, Cell, Syringe, skip=[], ddQ=[], Q_dil=0.0, cellRef=None, syringeRef=None, title=None, units='J'):
 		"""Constructor for the ITCExperiment object.
 
-		Args:
-			T (float): The experimental temperature (in Kelvin).
-			V0 (float): The volume of the calorimeter's cell, in microliters.
-			injections (list of floats): The volumes injected at each titration point.
-			Cell (dict of floats): The starting concentration of the named components in the cell.
-			Syringe (dict of floats): The concentration of the named components in the syringe.
-			skip (list of ints): Titration points to exclude during fitting.
-			ddQ (list of floats): List of estimated errors in each titration point enthalpy.
-			Q_dil (float): Heat of dilution for syringe solution.
-			cellRef (string): The cell reference component.
-			syringeRef (string): The syringe reference component.
-			spline_pts (int): Number of points to use in the Savitsky-Golay filter used to estimate errors in experimental enthalpies.
-			spline_order (int): Order of the SG filter.
-			title (string): A descriptive title for the experiment.
+		Arguments
+		---------
+		T : float
+			The experimental temperature (in Kelvin).
+		V0 : float
+			The volume of the calorimeter's cell, in microliters.
+		injections : list of floats
+			The volumes injected at each titration point.
+		dQ : list of floats
+			The evolved heat at each injection
+		Cell : dict of floats
+			The starting concentration of the named components in the cell.
+		Syringe : dict of floats
+			The concentration of the named components in the syringe.
+		skip : list of ints
+			Titration points to exclude during fitting.
+		ddQ : list of floats
+			List of estimated error in each titration point enthalpy.
+		Q_dil : float
+			Heat of dilution for syringe solution.
+		cellRef : string
+			The cell reference component.
+		syringeRef : string
+			The syringe reference component.
+		title : string
+			A descriptive title for the experiment.
+		units : string
+			The units of dQ heats.
 		"""
 		
 		self.T			= T
@@ -57,7 +64,7 @@ class ITCExperimentBase:
 
 		if title:
 			self.title		= title
-		else:
+		else: # assign a pseudounique title
 			self.title 		= uuid.uuid4()
 	
 		# reference components
@@ -113,6 +120,18 @@ class ITCExperimentBase:
 		self.initialized = False # will be set to True by implementors of this base class
 	
 	def __str__(self):
+		"""Stringify the experiment to be suitable for display to the user
+		
+		Parameters
+		----------
+		None
+		
+		Returns
+		-------
+		string
+			String containing the description and other experimental info.
+		"""
+		
 		ret = "Title: %s\n"%(self.title)
 		if (self.chisq != None):
 			ret+= "Chisq: %f\n"%(self.chisq)
@@ -134,6 +153,25 @@ class ITCExperimentBase:
 		return ret
 
 	def change_component_name(self,old_name,new_name):
+		"""Update the name of a component in the experiment to the specified one.
+		
+		Arguments
+		---------
+		old_name : string
+			The name of the component in the experiment object to update
+		new_name : string
+			The new name of the component to use
+			
+		Returns
+		-------
+		None
+		
+		Notes
+		-----
+			Because syringe and cell components are referred to by name, problems can arise where the component is called by one name in the model, and another in the experiment.
+			This method allows the user to update an experimental component by name to match the one used in the model, e.g. from the specific "Tryptophan" specified in the experiment file to the generic "Ligand" used in the model.
+		"""
+
 		assert old_name in self.Concentrations[0]
 		for i in xrange(self.npoints):
 			self.Concentrations[i][new_name] = self.Concentrations[i][old_name]
@@ -155,15 +193,20 @@ class ITCExperimentBase:
 	def make_plot(self,hardcopy=False,hardcopydir='.',hardcopyprefix='', hardcopytype='png'):
 		"""Generate a plot of the experimental data, and the fit if present.
 
-		Arguments:
-			hardcopy (boolean): Display the fit to the screen, or write it to a file?
-			hardcopydir (string): The directory to write the hardcopy to.
-			hardcopyprefix (string): A prefix to append to the experiment's title when generating the output plot filename.
-			hardcopytype (string): The output format for the plot (availability is dependent upon what backends matplotlib was compiled with).
+		Arguments
+		----------
+		hardcopy : boolean
+			Display the fit to the screen, or write it to a file?
+		hardcopydir : string
+			The directory to write the hardcopy to.
+		hardcopyprefix : string
+			A prefix to append to the experiment's title when generating the output plot filename.
+		hardcopytype : string
+			The output format for the plot (availability is dependent upon what backends matplotlib was compiled with).
 
-		Returns:
-			None
-
+		Returns
+		-------
+		None
 		"""
 		if not self.initialized:
 			raise Exception("No data to plot. If experiment is synthetic, call sim.run() first.")
@@ -220,17 +263,25 @@ class ITCExperimentBase:
 	def export_to_file(self,path,units='cal',full=False):
 		"""Export the attributes of the experiment to a file.
 
-		Args:
-			path (string): The filesystem path to write the output to.
-			units (string): The units to use in the export, must be either "J" for Joules (the default), or "cal" for calories.
+		Arguments
+		---------
+		path : string
+			The filesystem path to write the output to.
+		units : string
+			The units to use in the export, must be either "J" for Joules (the default), or "cal" for calories.
 
-		Returns:
-			None
+		Returns
+		-------
+		None
+			
+		Notes
+		-----
+			Most instruments (for historical reasons) report binding enthalpies in calories. Thus, this is the default behavior for this method.
 		"""
-		
-		assert units in ('cal','kcal','J')
-
+				
 		from datetime import datetime
+
+		assert units in _UNITS
 
 		h = open(path,'w')
 		h.write("# itcsim export of %s\n#\n"%(self.title))
@@ -277,11 +328,21 @@ class ITCExperimentBase:
 	def get_chisq(self, Q, writeback=False):
 		"""Calculate the goodness-of-fit between the provided data and the experimental data.
 
-		Args:
-			Q (list of floats): The predicted total heat at each injection point.
+		Arguments
+		---------
+		Q : list of floats
+			The predicted total heat at each injection point.
+		writeback : boolean
+			Update the experiment's simulated heat attribute (dQ_fit) with the provided Qs?
+			
+		Returns
+		-------
+		float
+			The goodness of the fit, as a reduced chi-square.
 
-		Returns:
-			(float): The goodness of the fit, as a reduced chi-square.
+		Notes
+		-----
+			Even if the experiment's dQ_fit attribute is not updated, it's chisq property will be.
 		"""
 		
 		dV = 0.0
@@ -309,11 +370,29 @@ class ITCExperimentBase:
 		return self.chisq
 		
 class ITCExperiment(ITCExperimentBase):
-	"""
-	spline (list of floats): The smoothed spline (if any) to the experimental enthalpies, in Joules.
+	"""An object that encapsulates an empirical (i.e. "real") ITC experiment.
+	
+	Attributes
+	----------
+	spline : list of floats
+		The smoothed spline (if any) to the experimental enthalpies, in Joules.
 	"""
 	
 	def __init__(self, spline_pts=7, spline_order=1, *args, **kwargs ):
+		"""The constructor for the empirical ITCExperiment class
+	
+		Arguments
+		---------
+		spline_pts : int
+			Number of points to use in the Savitsky-Golay filter used to estimate errors in experimental enthalpies.
+		spline_order : int
+			Order of the Savitsky-Golay filter.
+		*args
+			Positional arguments to pass along to ITCExperimentBase.
+		**kwargs
+			Keyword arguments to pass along to ITCExperimentBase.
+		"""
+
 		ITCExperimentBase.__init__(self,*args,**kwargs)
 	
 		if self.ddQ != []:
@@ -335,7 +414,39 @@ class ITCExperiment(ITCExperimentBase):
 		self.initialized = True
 
 class ITCExperimentSynthetic(ITCExperimentBase):
+	"""An object that encapsulates a synthetic (i.e. simulated) ITC experiment.
+	
+	Attributes
+	----------
+	noise : float
+		The standard deviation (in percent) of normally-distributed noise to add to the pure simulated total evolved heat.
+	initialized: boolean
+		A flag that is set once the class's dQ_fit attribute has been set (see notes).
+		
+	Notes
+	-----
+		The first time the get_chisq() method of this class is called, the "experimental" dQ attribute is populated with the per-injection heats simulated by the model (+ the amount of specified noise).
+		Subsequent calls will return the actual reduced chi-square difference between the experiment's calculated dQ and the model predictions, as expected.
+
+		If noise is set to 0 (or None), then the get_chisq() method of this class will always return 1.0, as without realistic noise, the reduced chisquare is meaningless. 
+	"""
+
 	def __init__(self, injections, noise=None, *args, **kwargs):
+		"""The constructor for the ITCExperimentSynthetic class
+		
+		Arguments
+		---------
+		injections : list of floats
+			The injection volumes (in uL) for each point in the titration.
+		noise : float
+			The standard deviation (in percent) of normally-distributed noise to add to the pure simulated total evolved heat.
+		*args
+			Positional arguments to pass along to ITCExperimentBase
+		**kwargs
+			Keyword arguments to pass along to ITCExperimentBase
+	
+		"""
+		
 		ITCExperimentBase.__init__(self,injections=injections,dQ=[0.0]*len(injections),*args,**kwargs)
 		
 		if noise == None:
@@ -344,9 +455,21 @@ class ITCExperimentSynthetic(ITCExperimentBase):
 			self.noise = convert_to_J(self.units,noise)*self.Syringe[self.syringeRef]
 		self.initialized = False
 		
-	# monkeypatch chisq to update dQ if uninitialized
 	def get_chisq(self, Q, writeback):
+		"""Monkeypatches the parent ITCExperimentBase's get_chisq() class method to update the class's dQ_exp attribute the first time the method is called.
+		
+		Arguments
+		---------
+		Q : list of floats
+			The predicted total heat at each injection point.
+		writeback : boolean
+			Update the experiment's simulated heat attribute (dQ_fit) with the provided Qs?
 
+		Returns
+		-------
+		float
+			The goodness of the fit, as a reduced chi-square, unless the class's noise attribute is zero or none in which case 1.0 is returned (see class notes).
+		"""
 		if not self.initialized:
 			
 			if self.noise:
@@ -354,7 +477,7 @@ class ITCExperimentSynthetic(ITCExperimentBase):
 				ret = ITCExperimentBase.get_chisq(self, Q[:], writeback=True)
 				self.dQ_exp = [scipy.random.normal(self.dQ_fit[i],self.noise) for i in xrange(self.npoints)]
 				self.dQ_fit = None
-			else:
+			elif self.noise == 0 or self.noise == None:
 				self.ddQ = [1.0]*self.npoints
 				ITCExperimentBase.get_chisq(self, Q[:], writeback=True)
 				self.dQ_exp = self.dQ_fit[:]

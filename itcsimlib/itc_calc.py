@@ -3,23 +3,33 @@ import traceback
 import multiprocessing
 
 class ITCCalc(multiprocessing.Process):
-	"""Worker daemon that uses a provided model to predict titration point enthalpies.
+	"""Worker daemon that uses the provided model to predict titration point enthalpies.
 	
-	Attributes:
-		T0 (float): The reference temperature used in the simulation
-		model (ITCModel): The model used to calculate per-injection enthalpies.
-		iQ (Queue): The queue to read incoming model parameters and ITCExperiments from.
-		oQ (Queue): The queue to put calculated enthalpies into.
+	Attributes
+	----------
+	T0 : float
+		The reference temperature used in the simulation.
+	model : ITCModel
+		The model used to generate per-injection enthalpies.
+	iQ : Queue
+		The queue to read incoming model parameters and ITCExperiments from.
+	oQ : Queue
+		The queue to submit calculated enthalpies (or errors) to.
 	"""
 	
 	def __init__(self,T0,model,in_queue,out_queue):
-		"""Initialize the ITCCalc object.
+		"""Construtor for the ITCCalc object.
 					
-		Arguments:
-			T0 (float): The reference temperature used in the simulation
-			model (ITCModel): The model used to calculate per-injection enthalpies.
-			iQ (Queue): The queue to read incoming model parameters and ITCExperiments from.
-			oQ (Queue): The queue to put calculated enthalpies into.
+		Arguments
+		---------
+		T0 : float
+			The reference temperature used in the simulation
+		model : ITCModel
+			The model used to calculate per-injection enthalpies.
+		in_queue : Queue
+			The queue to read incoming model parameters and ITCExperiments from.
+		out_queue : Queue
+			The queue to put calculated enthalpies into.
 		"""
 		multiprocessing.Process.__init__(self)
 		
@@ -30,13 +40,15 @@ class ITCCalc(multiprocessing.Process):
 		self.daemon = True
 				
 	def run(self):
-		"""Start looking for experiments to process in the input queue.
+		"""Start processing submitted experiments in the input queue.
 		
-		Arguments:
-			None
+		Arguments
+		---------
+		None
 		
-		Returns:
-			None
+		Returns
+		-------
+		None
 		"""
 		
 		# start the model

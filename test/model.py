@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 
 import unittest
+import os
+import sys
 
+try:
+	from itcsimlib import *
+except ImportError:
+	sys.path.append(os.path.abspath(".."))
+	from itcsimlib import *
 from itcsimlib.model_independent import *
 from itcsimlib.model_ising import *
 
@@ -11,8 +18,7 @@ class TestModel(TestITCSIM):
 	del TestITCSIM.test_run
 
 	def reset_simulation(self,cell="Lattice",syringe="Ligand"):
-		for E in self.sim.get_experiments():
-			self.sim.remove_experiment(self.sim.get_experiment_by_title(E.title))
+		self.sim.remove_all_experiments()
 		self.sim.add_experiment_synthetic(
 				T=298.15,
 				V0=1416.6,

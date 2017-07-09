@@ -1,24 +1,35 @@
 import scipy
 
 class ITCGrid:
-	"""A class for either discretely space parameters either for different starting conditions or holding them fixed during optimization.
+	"""A class for either discretely spacing parameters either for different starting conditions or holding them fixed during optimization.
 
-	Attributes:
-		fit (ITCFit): The fitter used for optimization.
-		sim (ITCSim): The simulator (and associated model) used for fitting.
-		callback (function): A function to be called with the current parameter vector after optimization at each grid point.
-		verbose (boolean): Whether or not to print additional information to the console.
+	Attributes
+	----------
+	fit : ITCFit
+		The fitter used for optimization.
+	sim : ITCSim
+		The simulator (and associated model) used for fitting.
+	callback : function
+		A function to be called with the current parameter vector after optimization at each grid point.
+	verbose : boolean
+		Whether or not to print additional information to the console.
 	"""
 
 	def __init__(self, fit, start=0, end=None, callback=None, verbose=False ):
 		"""The constructor function for the ITCGrid object.
 
-		Arguments:
-			fit (ITCFit): The fitter used for optimization.
-			start (integer): The point index on the grid to start at.
-			end (integer): The point index on the grid to end at.
-			callback (function): A function to be called with the current parameter vector after optimization at each grid point.
-			verbose (boolean): Whether or not to print additional information to the console.
+		Arguments
+		---------
+		fit : ITCFit
+			The fitter used for optimization.
+		start : integer
+			The point index on the grid to start at.
+		end : integer
+			The point index on the grid to end at.
+		callback : function
+			A function to be called with the current parameter vector after optimization at each grid point.
+		verbose : boolean
+			Whether or not to print additional information to the console.
 		"""
 
 		self.fit	= fit
@@ -37,15 +48,22 @@ class ITCGrid:
 	def add_axis(self, param, start, stop, steps, logspace=False):
 		"""Add a parameter discretization axis to the the grid
 
-		Arguments:
-			param (string): The name of the model parameter.
-			start (float): The starting value of the model parameter.
-			stop (float): The ending value of the model parameter.
-			steps (integer): The number of steps to insert between the start and stop.
-			logspace (boolean): Space the steps logarithmically?
+		Arguments
+		---------
+		param : string
+			The name of the model parameter.
+		start : float
+			The starting value of the model parameter.
+		stop : float
+			The ending value of the model parameter.
+		steps : integer
+			The number of steps to insert between the start and stop.
+		logspace : boolean
+			Space the steps logarithmically?
 
-		Returns:
-			None
+		Returns
+		-------
+		None
 		"""
 
 		assert param in self.sim.get_model_params().keys()
@@ -60,12 +78,16 @@ class ITCGrid:
 	def define_axis(self, param, points):
 		"""Add a parameter discretization axis to the the grid using a set of points.
 
-		Arguments:
-			param (string): The name of the model parameter.
-			points (list of floats): The points at which to sample the parameter
+		Arguments
+		---------
+		param : string
+			The name of the model parameter.
+		points : list of floats
+			The points at which to sample the parameter
 
-		Returns:
-			None
+		Returns
+		-------
+		None
 		"""
 
 		assert param in self.sim.get_model_params().keys()
@@ -75,7 +97,18 @@ class ITCGrid:
 		self._grid_order.append(param)
 
 	def get_axis_names(self):
-		"""Returns the names of the parameters the grid is being evaluated over"""
+		"""Returns the names of the parameters the grid is being evaluated over
+		
+		Arguments
+		---------
+		None
+		
+		Returns
+		-------
+		list of strings
+			The parameter names that constitute the axes of the grid
+		
+		"""
 		return self._grid_order
 
 	def _get_point(self, index):
@@ -87,14 +120,19 @@ class ITCGrid:
 		return gridpt
 
 	def optimize(self, params=[], **kwargs ):
-		"""Optimize the model at each point on the defined grid.
+		"""Optimize the model at each point on the grid defined by the parameter axes
 
-		Arguments:
-			params (list of strings): The names of the parameters to optimize.
-			callback (function): A function to call after optimization at each grid point, must accept a tuple consisting of the current grid point and the optimized model parameters
+		Arguments
+		---------
+		params : list of strings
+			The names of the parameters to optimize.
+		**kwargs
+			Keyword arguments to pass to the ITCFit optimizer at each grid point
 
-		Returns:
-			(list of tuples): A list of tuples, where each tuple consists of the grid point and the resulting optimized model parameters
+		Returns
+		-------
+		(list of tuples)
+			A list of tuples, where each tuple consists of the grid point and the resulting optimized model parameters
 		"""
 
 		assert self._grid_size > 1
@@ -134,6 +172,4 @@ class ITCGrid:
 		self.sim.set_model_params( **start_params )
 
 		return self._grid_results
-
-
-
+		

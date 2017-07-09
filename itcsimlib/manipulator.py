@@ -17,7 +17,7 @@ class Manipulator(Tk):
 		if experiments:
 			self.experiments = experiments
 		else:
-			self.experiments = self.sim.get_experiments()
+			self.experiments = self.sim.experiments
 		if params:
 			self.params = params
 		else:

@@ -2,12 +2,17 @@
 
 import unittest
 import os
+import sys
 import shutil
 import tempfile
 import uuid
 import pickle
 
-from itcsimlib import *
+try:
+	from itcsimlib import *
+except ImportError:
+	sys.path.append(os.path.abspath(".."))
+	from itcsimlib import *
 from itcsimlib.utilities import *
 
 class TestITCBase(unittest.TestCase):
@@ -90,9 +95,8 @@ class TestITCSIM(TestITCBase):
 
 	def test_run(self):
 		from itcsimlib.model_independent import OneMode
-
-		for E in self.sim.get_experiments():
-			self.sim.remove_experiment(self.sim.get_experiment_by_title(E.title))
+		
+		self.sim.remove_all_experiments()
 		self.sim.add_experiment_synthetic(
 				T=298.15,
 				V0=1416.6,
@@ -131,13 +135,17 @@ class TestITCFit(TestITCSIM):
 		fit = ITCFit( self.sim, method='bfgs', method_args={"maxiter":1} )
 		self.assertEqual( round(fit.optimize(params=['n','dG','dH'])[1],3), 2.665 )
 
-	def test_fit_estimate_bootstrap(self):
+	def test_fit_estimate_bootstrap_(self):
 		fit = ITCFit( self.sim, method='simplex', method_args={"maxiter":1} )
 		self.assertIsNotNone( fit.estimate(params=['n','dG','dH'], method='bootstrap', bootstraps=5) )
 
-	def test_fit_estimate_sigma(self):
+	def test_fit_estimate_sigma_bisect(self):
 		fit = ITCFit( self.sim, method='simplex', method_args={"maxiter":1} )
-		self.assertIsNotNone( fit.estimate(params=['n','dG','dH'], method='sigma', stdevs=2) )
+		self.assertIsNotNone( fit.estimate(params=['n','dG','dH'], method='sigma', rootfinder='bisect', stdevs=2) )
+
+	def test_fit_estimate_sigma_secant(self):
+		fit = ITCFit( self.sim, method='simplex', method_args={"maxiter":1} )
+		self.assertIsNotNone( fit.estimate(params=['n','dG','dH'], method='sigma', rootfinder='secant', stdevs=2) )
 		
 class TestITCGrid(TestITCSIM):
 	def setUp(self):
