@@ -11,5 +11,6 @@ except ImportError:
 from base import *
 from model import *
 from trap import *
+from drakon import *
 
 unittest.main()

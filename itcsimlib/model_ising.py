@@ -1,3 +1,4 @@
+import sys
 import math
 import scipy
 import scipy.optimize
@@ -10,6 +11,11 @@ try:
 	_tmp = OrderedDict()
 except:
 	from ordered_dict	import OrderedDict
+	
+try:
+	import sympy
+except:
+	pass
 
 class Ising(ITCModel):
 	"""An ITC model based on ligand binding to an Ising lattice.
@@ -56,7 +62,7 @@ class Ising(ITCModel):
 		self.weights	= [0.0]*self.nconfigs # probability of each config
 		self.gibbs		= [0.0]*self.nconfigs # free energy of each config
 		self.enthalpies	= [0.0]*self.nconfigs # enthalpic energy of each config
-		self.precision	= 1E-9 # the precision in ligand concentration required for convergence during set_probabilities()
+		self.precision	= 1E-12 # the precision in ligand concentration required for convergence during set_probabilities()
 		
 		self.parameter_symbols = {} # model parameters used during partition function generation
 		self.config_expressions = [ 0 for i in xrange(self.nconfigs) ] # expressions of configuration free energies using the parameter symbols
@@ -71,11 +77,10 @@ class Ising(ITCModel):
 		"""Wrapper for the typical ITC model add_parameter, with the added tweak that a sympy symbol is created for eventually generating the model's partition function."""
 		ITCModel.add_parameter(self, name, type, **kwargs)
 		
-		try:
-			import sympy
-		except:
-			return	
-		self.parameter_symbols[name] = sympy.symbols(name)
+		if "sympy" in sys.modules:
+			self.parameter_symbols[name] = sympy.symbols(name)
+		else:
+			self.parameter_symbols[name] = 0
 
 	def get_site_occupancy(self,config,site):
 		"""Return whether a given site is occupied or not, correctly accounting for circular lattices and lattice indicies <0 or >n.
@@ -188,7 +193,9 @@ class Ising(ITCModel):
 		sympy object
 			The symbolic partition function for the model.
 		"""
-		import sympy
+		if not "sympy" in sys.modules:
+			raise RuntimeError("sympy must be installed to call get_partition_function")
+			return
 
 		self.set_energies(273.15,273.15) # ensure that this is run at least once to populate config_terms
 
