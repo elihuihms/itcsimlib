@@ -26,6 +26,8 @@ class DRAKONIsingModel(Ising):
 		# convenience functions
 		self.occupied = self.get_site_occupancy
 		self.neighbor = self.get_site_occupancy
+		self.set_param = self.set_parameter
+		
 		self.setup()
 	
 	def initialize(self, *args, **kwargs):
@@ -55,9 +57,9 @@ class DRAKONIsingModel(Ising):
 		
 		See the ITCModel.add_parameter() method for the argument list.
 		"""
-		
-		Ising.set_param(self, name, value)
-		setattr(self, name, value)
+
+		Ising.set_param(self, name, value) # convert units if necessary
+		setattr(self, name, self.params[name])
 		
 	def set_energies(self, T0, T):
 		"""Set the gibbs and enthalpic energy of each lattice configuration using the DRAKON site() method.
