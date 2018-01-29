@@ -10,10 +10,15 @@ class DRAKONIsingModel(Ising):
 	"""
 	
 	def setup(self):
-		raise NotImplementeError("Valid DRAKON models must implement this method")
-		
+		raise NotImplementedError("Valid DRAKON models must implement this method")
+	
+	"""
 	def site(self, i, j ):
-		raise NotImplementeError("Valid DRAKON models must implement this method")
+		raise NotImplementedError("Valid DRAKON models must implement site() or config()")
+		
+	def configuration(self, *args):
+		raise NotImplementedError("Valid DRAKON models must implement site() or config()")
+	"""
 	
 	def __init__(self):
 		"""Constructor for the model.
@@ -37,7 +42,7 @@ class DRAKONIsingModel(Ising):
 		
 		Ising.__init__(self, *args, **kwargs)
 	
-	def add_parameter(self, name, type, **kwargs):
+	def add_parameter(self, name, type=None, **kwargs):
 		"""Alias for the ITCModel add_parameter() method. This method also adds the parameter to the class attributes.
 		
 		See the ITCModel.add_parameter() method for the argument list.
@@ -50,6 +55,9 @@ class DRAKONIsingModel(Ising):
 		else:
 			setattr(self, name, 0.0)
 			
+		if type==None: # a bit cheesy
+			type = name[0:2]
+			
 		Ising.add_parameter(self, name, type, **kwargs)
 			
 	def set_parameter(self, name, value):
@@ -60,6 +68,21 @@ class DRAKONIsingModel(Ising):
 
 		Ising.set_param(self, name, value) # convert units if necessary
 		setattr(self, name, self.params[name])
+		
+	def count_occupied(self, i):
+		"""Convenience function for DRAKON models - getter for bound[].
+		
+		Arguments
+		---------
+		i : integer
+			The index of the configuration.
+			
+		Returns
+		-------
+		integer : the number of occupied sites in the configuration.
+		"""
+		
+		return self.bound[i]
 		
 	def set_energies(self, T0, T):
 		"""Set the gibbs and enthalpic energy of each lattice configuration using the DRAKON site() method.
@@ -77,16 +100,21 @@ class DRAKONIsingModel(Ising):
 		"""	
 		self._T0,self._T = T0,T
 		
+		config_energy_function = getattr(self, "config", False)
+		
 		for i in xrange(self.nconfigs):
 			self.gibbs[i],self.enthalpies[i] = 0.0,0.0
 			self.config_expressions[i] = 0
 			
-			for j in xrange(self.nsites):
-				self.site(i, j)
+			if config_energy_function:
+				self.configuration(i,*self.configs[i])
+			else:
+				for j in xrange(self.nsites):
+					self.site(i, j)				
 		
 	def add_dG(self, i, dG, dH=None, dCp=None):
-		"""Convenience function for DRAKON models that allows incrementing the gibbs free energy of a configuration.
-		Also permits temperature-dependent van't Hoff correction, if dH and dCp are not None.
+		"""Convenience function for DRAKON models to increment the gibbs free energy of a configuration.
+		This function also permits temperature-dependent van't Hoff correction, if dH and dCp are not None.
 		
 		Arguments
 		---------
@@ -106,8 +134,8 @@ class DRAKONIsingModel(Ising):
 			self.gibbs[i] += dG_vant_Hoff( dG, dH, dCp, self._T, self._T0 )
 		
 	def add_dH(self, i, dH, dCp=None):
-		"""Convenience function for DRAKON models that allows incrementing the enthalpy of a configuration.
-		Also permits temperature-dependent van't Hoff correction, if dCp is not None.
+		"""Convenience function for DRAKON models to increment the enthalpy of a configuration.
+		This function permits temperature-dependent van't Hoff correction, if dCp is not None.
 		
 		Arguments
 		---------
@@ -123,7 +151,4 @@ class DRAKONIsingModel(Ising):
 			self.enthalpies[i] += dH
 		else:
 			self.enthalpies[i] += dH_vant_Hoff( dH, dCp, self._T, self._T0 )
-		
-	
-
 		
