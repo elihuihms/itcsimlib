@@ -1,5 +1,8 @@
 import sys
 sys.path.append("/Users/elihuihms/Sync/Research/itcsimlib-master/")
+sys.path.append("/Users/elihuihms/Sync/Research/itcsimlib-master/examples/drakon/koshland-1966/")
+
+import sympy
 
 from itcsimlib import *
 
@@ -13,7 +16,7 @@ sim.add_experiment_synthetic(
 	Syringe={"Ligand":40E-6},
 	title='drakon_004')
 
-from drakon_test_004 import Model
+from koshland_1966 import Model
 
 model = Model()
 model.precision = 1E-15
@@ -21,6 +24,7 @@ model.precision = 1E-15
 sim.set_model( model )
 
 print sim.model
+print sympy.latex(sim.model.get_partition_function())
 
 sim.set_model_params(-10,0,0,-1,0,0) #dG_st, dG_AB, dG_BB, #dH_st, dH_AB, dH_BB
 sim.run()

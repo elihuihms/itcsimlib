@@ -29,32 +29,32 @@ class Model(DRAKONIsingModel):
         #item 97
         if self.occupied(i,j) == True:
             #item 90
-            self.add_dG(i, self.dG_0, dH=self.dH_0, dCp=self.dCp_0 )
-            self.add_dH(i, self.dH_0, dCp=self.dCp_0 )
+            self.add_dG(i, 'dG_0', dH='dH_0', dCp='dCp_0')
+            self.add_dH(i, 'dH_0', dCp='dCp_0')
             #item 95
             if self.occupied(i,j-1) == True:
                 #item 91
                 if self.occupied(i,j+1) == True:
                     #item 108
-                    self.add_dG(i, self.dG_oo, dH=self.dH_oo, dCp=self.dCp_oo )
-                    self.add_dH(i, self.dH_oo, dCp=self.dCp_oo )
+                    self.add_dG(i, 'dG_oo', dH='dH_oo', dCp='dCp_oo')
+                    self.add_dH(i, 'dH_oo', dCp='dCp_oo')
                 else:
                     #item 109
-                    self.add_dG(i, self.dG_oe, dH=self.dH_oe, dCp=self.dCp_oe )
-                    self.add_dH(i, self.dH_oe, dCp=self.dCp_oe )
+                    self.add_dG(i, 'dG_oe', dH='dH_oe', dCp='dCp_oe')
+                    self.add_dH(i, 'dH_oe', dCp='dCp_oe')
                     #item 99
                     if self.occupied(i,j+1) == True:
                         #item 110
-                        self.add_dG(i, self.dG_oe, dH=self.dH_oe, dCp=self.dCp_oe )
-                        self.add_dH(i, self.dH_oe, dCp=self.dCp_oe )
+                        self.add_dG(i, 'dG_oe', dH='dH_oe', dCp='dCp_oe')
+                        self.add_dH(i, 'dH_oe', dCp='dCp_oe')
                     else:
                         pass
             else:
                 #item 99
                 if self.occupied(i,j+1) == True:
                     #item 110
-                    self.add_dG(i, self.dG_oe, dH=self.dH_oe, dCp=self.dCp_oe )
-                    self.add_dH(i, self.dH_oe, dCp=self.dCp_oe )
+                    self.add_dG(i, 'dG_oe', dH='dH_oe', dCp='dCp_oe')
+                    self.add_dH(i, 'dH_oe', dCp='dCp_oe')
                 else:
                     pass
         else:

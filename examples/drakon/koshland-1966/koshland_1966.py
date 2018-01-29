@@ -7,8 +7,8 @@ def linear(m, i, j):
     #item 353
     if m.occupied(i,j) == True:
         #item 355
-        m.add_dG(i, m.dG_st)
-        m.add_dH(i, m.dH_st)
+        m.add_dG(i, 'dG_st')
+        m.add_dH(i, 'dH_st')
         #item 372
         if j == 0:
             pass
@@ -16,12 +16,12 @@ def linear(m, i, j):
             #item 356
             if m.occupied(i,j-1) == True:
                 #item 358
-                m.add_dG(i, m.dG_BB)
-                m.add_dH(i, m.dH_BB)
+                m.add_dG(i, 'dG_BB')
+                m.add_dH(i, 'dH_BB')
             else:
                 #item 357
-                m.add_dG(i, m.dG_AB)
-                m.add_dH(i, m.dH_AB)
+                m.add_dG(i, 'dG_AB')
+                m.add_dH(i, 'dH_AB')
         #item 374
         if j == 3:
             pass
@@ -29,12 +29,12 @@ def linear(m, i, j):
             #item 361
             if m.occupied(i,j+1) == True:
                 #item 363
-                m.add_dG(i, m.dG_BB)
-                m.add_dH(i, m.dH_BB)
+                m.add_dG(i, 'dG_BB')
+                m.add_dH(i, 'dH_BB')
             else:
                 #item 362
-                m.add_dG(i, m.dG_AB)
-                m.add_dH(i, m.dH_AB)
+                m.add_dG(i, 'dG_AB')
+                m.add_dH(i, 'dH_AB')
     else:
         pass
 
@@ -43,8 +43,8 @@ def noncooperative(m, i, j):
     #item 434
     if m.occupied(i,j) == True:
         #item 436
-        m.add_dG(i, m.dG_st)
-        m.add_dH(i, m.dH_st)
+        m.add_dG(i, 'dG_st')
+        m.add_dH(i, 'dH_st')
     else:
         pass
 
@@ -53,26 +53,26 @@ def square(m, i, j):
     #item 329
     if m.occupied(i,j) == True:
         #item 331
-        m.add_dG(i, m.dG_st)
-        m.add_dH(i, m.dH_st)
+        m.add_dG(i, 'dG_st')
+        m.add_dH(i, 'dH_st')
         #item 332
         if m.occupied(i,j-1) == True:
             #item 334
-            m.add_dG(i, m.dG_BB)
-            m.add_dH(i, m.dH_BB)
+            m.add_dG(i, 'dG_BB')
+            m.add_dH(i, 'dH_BB')
         else:
             #item 333
-            m.add_dG(i, m.dG_AB)
-            m.add_dH(i, m.dH_AB)
+            m.add_dG(i, 'dG_AB')
+            m.add_dH(i, 'dH_AB')
         #item 337
         if m.occupied(i,j+1) == True:
             #item 339
-            m.add_dG(i, m.dG_BB)
-            m.add_dH(i, m.dH_BB)
+            m.add_dG(i, 'dG_BB')
+            m.add_dH(i, 'dH_BB')
         else:
             #item 338
-            m.add_dG(i, m.dG_AB)
-            m.add_dH(i, m.dH_AB)
+            m.add_dG(i, 'dG_AB')
+            m.add_dH(i, 'dH_AB')
     else:
         pass
 
@@ -81,8 +81,8 @@ def tetrahedral(m, i, j):
     #item 384
     if m.occupied(i,j) == True:
         #item 386
-        m.add_dG(i, m.dG_st)
-        m.add_dH(i, m.dH_st)
+        m.add_dG(i, 'dG_st')
+        m.add_dH(i, 'dH_st')
         #item 417
         counter = 0
         while True:
@@ -93,12 +93,12 @@ def tetrahedral(m, i, j):
                 #item 409
                 if m.occupied(i,counter) == True:
                     #item 412
-                    m.add_dG(i, m.dG_BB)
-                    m.add_dH(i, m.dH_BB)
+                    m.add_dG(i, 'dG_BB')
+                    m.add_dH(i, 'dH_BB')
                 else:
                     #item 411
-                    m.add_dG(i, m.dG_AB)
-                    m.add_dH(i, m.dH_AB)
+                    m.add_dG(i, 'dG_AB')
+                    m.add_dH(i, 'dH_AB')
             #item 418
             counter = counter + 1
             #item 419
@@ -116,20 +116,20 @@ class Model(DRAKONIsingModel):
         #item 136
         self.initialize(nsites=4,circular=True)
         #item 30
-        self.add_parameter("dG_st")
+        self.add_parameter("dG_st", type="dG")
         #item 316
-        self.add_parameter("dG_AB")
+        self.add_parameter("dG_AB", type="dG")
         #item 317
-        self.add_parameter("dG_BB")
+        self.add_parameter("dG_BB", type="dG")
         #item 32
-        self.add_parameter("dH_st")
-        self.add_parameter("dH_AB")
-        self.add_parameter("dH_BB")
+        self.add_parameter("dH_st", type="dH")
+        self.add_parameter("dH_AB", type="dH")
+        self.add_parameter("dH_BB", type="dH")
 
 
     def site(self, i, j):
         #item 428
-        type = "nonncooperative"
+        type = "linear"
         #item 4210001
         if type == "tetrahedral":
             #item 438

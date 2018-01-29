@@ -31,7 +31,6 @@ class DRAKONIsingModel(Ising):
 		# convenience functions
 		self.occupied = self.get_site_occupancy
 		self.neighbor = self.get_site_occupancy
-		self.set_param = self.set_parameter
 		
 		self.setup()
 	
@@ -43,31 +42,15 @@ class DRAKONIsingModel(Ising):
 		Ising.__init__(self, *args, **kwargs)
 	
 	def add_parameter(self, name, type=None, **kwargs):
-		"""Alias for the ITCModel add_parameter() method. This method also adds the parameter to the class attributes.
+		"""Convenience function for the ITCModel add_parameter() method.
 		
 		See the ITCModel.add_parameter() method for the argument list.
-		
-		Note that it's usually bad practice to pollute the namespace with random attributes.
-		Here, it's a calculated risk for more grokable DRAKON diagrams."""
-		
-		if getattr(self, name, "unassigned") != "unassigned":
-			raise Exception("The parameter name \"%s\" is already used in this class."%(args[0]))
-		else:
-			setattr(self, name, 0.0)
+		"""
 			
 		if type==None: # a bit cheesy
 			type = name[0:2]
 			
 		Ising.add_parameter(self, name, type, **kwargs)
-			
-	def set_parameter(self, name, value):
-		"""Alias for the ITCModel set_parameter() method. Updates the class attribute value as well.
-		
-		See the ITCModel.add_parameter() method for the argument list.
-		"""
-
-		Ising.set_param(self, name, value) # convert units if necessary
-		setattr(self, name, self.params[name])
 		
 	def count_occupied(self, i):
 		"""Convenience function for DRAKON models - getter for bound[].
@@ -120,18 +103,20 @@ class DRAKONIsingModel(Ising):
 		---------
 		i : integer
 			The index of the configuration
-		dG : float
-			The free energy change to add to the configuration, or the reference free energy change if dH and dCp are provided.
-		dH : float or None
-			The enthalpy change to use in the van't Hoff correction.
-		dCp : float or None
-			The heat capacity change to use in the van't Hoff correction.
+		dG : string
+			The name of the free energy change parameter to add to the configuration, or the reference free energy change if dH and dCp are provided.
+		dH : string or None
+			The name of the  enthalpy change parameter to use in the van't Hoff correction.
+		dCp : string or None
+			The name of the heat capacity change parameter to use in the van't Hoff correction.
 		"""
 		
 		if dH==None or dCp==None:
-			self.gibbs[i] += dG
+			self.gibbs[i] += self.get_param(dG,units="J")
 		else:
-			self.gibbs[i] += dG_vant_Hoff( dG, dH, dCp, self._T, self._T0 )
+			self.gibbs[i] += dG_vant_Hoff( self.get_param(dG,units="J"), self.get_param(dH,units="J"), self.get_param(dCp,units="J"), self._T, self._T0 )
+		
+		self.config_expressions[i] += self.parameter_symbols[dG]
 		
 	def add_dH(self, i, dH, dCp=None):
 		"""Convenience function for DRAKON models to increment the enthalpy of a configuration.
@@ -141,14 +126,14 @@ class DRAKONIsingModel(Ising):
 		---------
 		i : integer
 			The index of the configuration			
-		dH : float
-			The enthalpy change to add to the configuration.
-		dCp : float or None
-			The heat capacity change to use in the van't Hoff correction.
+		dH : string
+			The name of the enthalpy change parameter to add to the configuration.
+		dCp : string or None
+			The name of the heat capacity change parameter to use in the van't Hoff correction.
 		"""
 		
 		if dCp==None:
-			self.enthalpies[i] += dH
+			self.enthalpies[i] += self.get_param(dH,units="J")
 		else:
-			self.enthalpies[i] += dH_vant_Hoff( dH, dCp, self._T, self._T0 )
+			self.enthalpies[i] += dH_vant_Hoff( self.get_param(dH,units="J"), self.get_param(dCp,units="J"), self._T, self._T0 )
 		
