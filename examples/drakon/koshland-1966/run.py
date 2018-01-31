@@ -1,7 +1,3 @@
-import sys
-sys.path.append("/Users/elihuihms/Sync/Research/itcsimlib-master/")
-sys.path.append("/Users/elihuihms/Sync/Research/itcsimlib-master/examples/drakon/koshland-1966/")
-
 import sympy
 
 from itcsimlib import *

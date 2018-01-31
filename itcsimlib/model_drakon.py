@@ -93,23 +93,33 @@ class DRAKONIsingModel(Ising):
 				self.configuration(i,*self.configs[i])
 			else:
 				for j in xrange(self.nsites):
-					self.site(i, j)				
+					self.site(i, j)		
 		
 	def add_dG(self, i, dG, dH=None, dCp=None):
 		"""Convenience function for DRAKON models to increment the gibbs free energy of a configuration.
 		This function also permits temperature-dependent van't Hoff correction, if dH and dCp are not None.
+		Alternatively, an expression consisting of existing model parameters may be provided, but this may result in slow model evaluation, as the expression will need to be eval()'d for every configuration. 
 		
 		Arguments
 		---------
 		i : integer
 			The index of the configuration
 		dG : string
-			The name of the free energy change parameter to add to the configuration, or the reference free energy change if dH and dCp are provided.
+			The name of the free energy change parameter to add to the configuration, the reference free energy change if dH and dCp are provided, or an expression of other existing model parameters.
 		dH : string or None
 			The name of the  enthalpy change parameter to use in the van't Hoff correction.
 		dCp : string or None
 			The name of the heat capacity change parameter to use in the van't Hoff correction.
 		"""
+		
+		if dG not in self.params: # expression to evaluate
+			dG_v,dG_s = dG,dG
+			for p in self.params:
+				dG_v = dG_v.replace(p,"self.params['%s']"%p)
+				dG_s = dG_s.replace(p,"self.parameter_symbols['%s']"%p)
+			self.gibbs[i] += eval(dG_v)
+			self.config_expressions[i] += eval(dG_s)
+			return
 		
 		if dH==None or dCp==None:
 			self.gibbs[i] += self.get_param(dG,units="J")
@@ -121,16 +131,23 @@ class DRAKONIsingModel(Ising):
 	def add_dH(self, i, dH, dCp=None):
 		"""Convenience function for DRAKON models to increment the enthalpy of a configuration.
 		This function permits temperature-dependent van't Hoff correction, if dCp is not None.
-		
+		Alternatively, an expression consisting of existing model parameters may be provided, but this may result in slow model execution, as the expression will need to be eval()'d for every configuration. 
+
 		Arguments
 		---------
 		i : integer
 			The index of the configuration			
 		dH : string
-			The name of the enthalpy change parameter to add to the configuration.
+			The name of the enthalpy change parameter to add to the configuration, the reference enthalpy if dCp is provided, or an expression of other existing model parameters.
 		dCp : string or None
 			The name of the heat capacity change parameter to use in the van't Hoff correction.
 		"""
+		
+		if dH not in self.params: # expression to evaluate
+			for p in self.params:
+				dH = dH.replace(p,"self.params['%s']"%p)
+			self.enthalpies[i] += eval(dH)
+			return
 		
 		if dCp==None:
 			self.enthalpies[i] += self.get_param(dH,units="J")

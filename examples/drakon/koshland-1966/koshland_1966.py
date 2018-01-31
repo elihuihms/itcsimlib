@@ -16,8 +16,8 @@ def linear(m, i, j):
             #item 356
             if m.occupied(i,j-1) == True:
                 #item 358
-                m.add_dG(i, 'dG_BB')
-                m.add_dH(i, 'dH_BB')
+                m.add_dG(i, '0.5*dG_BB')
+                m.add_dH(i, '0.5*dH_BB')
             else:
                 #item 357
                 m.add_dG(i, 'dG_AB')
@@ -29,8 +29,8 @@ def linear(m, i, j):
             #item 361
             if m.occupied(i,j+1) == True:
                 #item 363
-                m.add_dG(i, 'dG_BB')
-                m.add_dH(i, 'dH_BB')
+                m.add_dG(i, '0.5*dG_BB')
+                m.add_dH(i, '0.5*dH_BB')
             else:
                 #item 362
                 m.add_dG(i, 'dG_AB')
@@ -58,8 +58,8 @@ def square(m, i, j):
         #item 332
         if m.occupied(i,j-1) == True:
             #item 334
-            m.add_dG(i, 'dG_BB')
-            m.add_dH(i, 'dH_BB')
+            m.add_dG(i, '0.5*dG_BB')
+            m.add_dH(i, '0.5*dH_BB')
         else:
             #item 333
             m.add_dG(i, 'dG_AB')
@@ -67,8 +67,8 @@ def square(m, i, j):
         #item 337
         if m.occupied(i,j+1) == True:
             #item 339
-            m.add_dG(i, 'dG_BB')
-            m.add_dH(i, 'dH_BB')
+            m.add_dG(i, '0.5*dG_BB')
+            m.add_dH(i, '0.5*dH_BB')
         else:
             #item 338
             m.add_dG(i, 'dG_AB')
@@ -93,8 +93,8 @@ def tetrahedral(m, i, j):
                 #item 409
                 if m.occupied(i,counter) == True:
                     #item 412
-                    m.add_dG(i, 'dG_BB')
-                    m.add_dH(i, 'dH_BB')
+                    m.add_dG(i, '0.5*dG_BB')
+                    m.add_dH(i, '0.5*dH_BB')
                 else:
                     #item 411
                     m.add_dG(i, 'dG_AB')
@@ -129,7 +129,7 @@ class Model(DRAKONIsingModel):
 
     def site(self, i, j):
         #item 428
-        type = "linear"
+        type = "tetrahedral"
         #item 4210001
         if type == "tetrahedral":
             #item 438
