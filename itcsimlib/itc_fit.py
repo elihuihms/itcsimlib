@@ -96,7 +96,7 @@ class ITCFit:
 		assert param in self.model.get_param_names()
 		self.bounds[param] = (low,high)
 
-	def optimize(self, params=[], callback=None, update_fits=False ):
+	def optimize(self, params=[], callback=None, update_fits=False, use_bounds=True ):
 		"""Optimize the specified parameters.
 
 		Arguments
@@ -133,10 +133,10 @@ class ITCFit:
 			for i,p in enumerate(params):
 				sim.set_model_param(p, x[i])
 
-			# this is hackish - if we violate a boundary, return a scaled well function based on the last iteration point
-			m = self._check_bounds()
-			if m > 0:
-				return sim.get_chisq() * (1+m)
+			if use_bounds:
+				m = self._apply_bounds()
+				if m > 0:
+					return sim.run(writeback=False)**(1.0+m)
 
 			return sim.run(writeback=False)
 	
@@ -356,16 +356,18 @@ class ITCFit:
 		# return the mean and standard deviation of the model parameters
 		return OrderedDict( (p,(scipy.mean(param_values[p]),scipy.std(param_values[p]))) for p in params )
 
-	def _check_bounds(self):
+	def _apply_bounds(self):
 		ret = 0
 		for k,v in self.sim.get_model_params().iteritems():
 			if self.bounds[k][0] != None and v < self.bounds[k][0]:
-				ret += (self.bounds[k][0] - v)
+				self.sim.set_model_param(k, self.bounds[k][0])
+				ret += scipy.fabs((self.bounds[k][0] - v) / self.bounds[k][0])
 				if self.verbose:
 					print "itc_fit: Boundary violation for \"%s\" (%f<%f)"%(k,v,self.bounds[k][0])
 
 			elif self.bounds[k][1] != None and v > self.bounds[k][1]:
-				ret += (v - self.bounds[k][1])
+				self.sim.set_model_param(k, self.bounds[k][1])
+				ret += fabs((v - self.bounds[k][1]) / self.bounds[k][1])			
 				if self.verbose:
 					print "itc_fit: Boundary violation for \"%s\" (%f>%f)"%(k,v,self.bounds[k][1])
 

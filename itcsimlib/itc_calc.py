@@ -61,7 +61,7 @@ class ITCCalc(multiprocessing.Process):
 			try: # in the case of an exception, set the title field to warn the calling thread and stuff the whole exception in the queue
 				Q = self.model.Q( self.T0, E.T, E.Concentrations )
 			except Exception as exc:
-				type_, value_, traceback_ = sys.exc_info()
+				_type, _value, _traceback = sys.exc_info()
 				
 				self.oQ.put( (None,traceback.format_exc()) )
 			else:

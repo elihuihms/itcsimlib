@@ -240,7 +240,6 @@ class Ising(ITCModel):
 		-------
 		None
 		"""
-		self.reset_partition_function()
 		
 		for i in xrange(self.nconfigs):
 			self.gibbs[i], self.enthalpies = 0.0, 0.0

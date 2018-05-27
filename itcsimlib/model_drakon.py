@@ -31,6 +31,7 @@ class DRAKONIsingModel(Ising):
 		# convenience functions
 		self.occupied = self.get_site_occupancy
 		self.neighbor = self.get_site_occupancy
+		self.set_parameter = self.set_param
 		
 		self.setup()
 	
@@ -41,16 +42,29 @@ class DRAKONIsingModel(Ising):
 		
 		Ising.__init__(self, *args, **kwargs)
 	
-	def add_parameter(self, name, type=None, **kwargs):
-		"""Convenience function for the ITCModel add_parameter() method.
+	def add_parameter(self, name, type, **kwargs):
+		"""Alias for the ITCModel add_parameter() method. This method also adds the parameter to the class attributes.
+		
+		See the ITCModel.add_parameter() method for the argument list.
+		
+		Note that it's usually bad practice to pollute the namespace with random attributes.
+		Here, it's a calculated risk for more grokable DRAKON diagrams."""
+		
+		if getattr(self, name, "unassigned") != "unassigned":
+			raise Exception("The parameter name \"%s\" is already used in this class."%(args[0]))
+		else:
+			setattr(self, name, 0.0)
+			
+		Ising.add_parameter(self, name, type, **kwargs)
+			
+	def set_param(self, name, value):
+		"""Alias for the ITCModel set_parameter() method. Updates the class attribute value as well.
 		
 		See the ITCModel.add_parameter() method for the argument list.
 		"""
-			
-		if type==None: # a bit cheesy
-			type = name[0:2]
-			
-		Ising.add_parameter(self, name, type, **kwargs)
+
+		Ising.set_param(self, name, value) # convert units if necessary
+		setattr(self, name, self.params[name])
 		
 	def count_occupied(self, i):
 		"""Convenience function for DRAKON models - getter for bound[].
@@ -83,7 +97,7 @@ class DRAKONIsingModel(Ising):
 		"""	
 		self._T0,self._T = T0,T
 		
-		config_energy_function = getattr(self, "config", False)
+		config_energy_function = getattr(self, "configuration", False)
 		
 		for i in xrange(self.nconfigs):
 			self.gibbs[i],self.enthalpies[i] = 0.0,0.0
