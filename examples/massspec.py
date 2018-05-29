@@ -26,19 +26,18 @@ class MSExperiment():
 		self.npoints = len(PConc)
 		assert len(LConc) == self.npoints
 		
-		data = genfromtxt( file, usecols=xrange(1,self.npoints+1), unpack=True )
-		assert len(data) == self.npoints
-		self.npops = len(data[0])/2
-		for i in xrange(len(data)):
-			assert len(data[i])/2 == self.npops
+		data = genfromtxt( file, usecols=xrange(1,self.npoints+1) )
+
+		assert len(data)/2 == self.npoints # first half is measured values, second half is sigmas
+		self.npops = len(data[0])
 
 		self.Concentrations,self.PopIntens,self.PopErrors,self.PopFits = [],[],[],[]
 		for i in xrange(self.npoints):
 			self.Concentrations.append({})
 			self.Concentrations[i]['Lattice'] = PConc[i] / 1.0E6
 			self.Concentrations[i]['Ligand'] = LConc[i] / 1.0E6
-			self.PopIntens.append( data[i][:self.npops] )
-			self.PopErrors.append( data[i][self.npops:] )
+			self.PopIntens.append( data[i][:] )
+			self.PopErrors.append( data[i+self.npoints][:] )
 			self.PopFits.append( [0.0]*self.npops )
 	
 	def make_plot(self,hardcopy=False,hardcopydir='.',hardcopyprefix='', hardcopytype='png'):
@@ -171,12 +170,18 @@ class NonAdditiveMS(Ising):
 if __name__ == "__main__":
 
 	model = NonAdditiveMS()
-	model.set_params(-26856,-27717,-29297)
-		
+	model.set_params(-27000,-27000,-30000)
+	
 	sim = ITCSim(verbose=True)
+
 	sim.set_model(model)
+
 	sim.add_experiment( MSExperiment('data/TRAP_populations_EDDA.txt') )	
+	
 	sim.run()
-	sim.make_plots(hardcopy=True,hardcopytype='png',hardcopyprefix='post_')
+
+	sim.make_plots(hardcopy=True,hardcopytype='png')
+
+	sim.experiments[0].export_to_file("massspec.fit")
+
 	sim.done()
-	sim.experiments[0].export_to_file("PLH_20160525_TRAP_populations_EDDA.fit")
