@@ -1,5 +1,16 @@
+#!/usr/bin/env python
+
+#
+# This script demonstrates how an itcsimlib experiment can be extended in order to fit mass spectrometric data
+#
+
 import os
-import scipy
+
+from itcsimlib import *
+from itcsimlib.model_ising import *
+from numpy import *
+
+_MATPLOTLIB_BACKEND = None #None for default
 
 class MSExperiment():
 	def __init__(self, file):
@@ -15,31 +26,30 @@ class MSExperiment():
 		self.npoints = len(PConc)
 		assert len(LConc) == self.npoints
 		
-		data = scipy.genfromtxt( file, usecols=xrange(1,self.npoints+1), unpack=True )
-		assert len(data) == self.npoints
-		self.npops = len(data[0])/2
-		for i in xrange(len(data)):
-			assert len(data[i])/2 == self.npops
+		data = genfromtxt( file, usecols=xrange(1,self.npoints+1) )
+
+		assert len(data)/2 == self.npoints # first half is measured values, second half is sigmas
+		self.npops = len(data[0])
 
 		self.Concentrations,self.PopIntens,self.PopErrors,self.PopFits = [],[],[],[]
 		for i in xrange(self.npoints):
 			self.Concentrations.append({})
 			self.Concentrations[i]['Lattice'] = PConc[i] / 1.0E6
 			self.Concentrations[i]['Ligand'] = LConc[i] / 1.0E6
-			self.PopIntens.append( data[i][:self.npops] )
-			self.PopErrors.append( data[i][self.npops:] )
+			self.PopIntens.append( data[i][:] )
+			self.PopErrors.append( data[i+self.npoints][:] )
 			self.PopFits.append( [0.0]*self.npops )
 	
 	def make_plot(self,hardcopy=False,hardcopydir='.',hardcopyprefix='', hardcopytype='png'):
-		from __init__ import MATPLOTLIB_BACKEND
 		try:
-			matplotlib.get_backend()
-		except:
-			if MATPLOTLIB_BACKEND != None:
+			if _MATPLOTLIB_BACKEND != None:
 				import matplotlib
-				matplotlib.use(MATPLOTLIB_BACKEND)
-		
-		import matplotlib.pyplot as pyplot
+				matplotlib.use(_MATPLOTLIB_BACKEND)
+			import matplotlib.pyplot as pyplot
+		except:
+			pyplot = None
+
+		if pyplot == None: return
 		if hardcopy: fig = pyplot.figure()
 
 		pyplot.clf()
@@ -115,3 +125,63 @@ class MSExperiment():
 		self.chisq = self.chisq / (self.npoints * self.npops)
 
 		return self.chisq
+		
+class NonAdditiveMS(Ising):
+	def __init__(self,nsites=11,circular=1):
+		Ising.__init__(self,nsites,circular)
+		self.units = 'J'
+		self.add_parameter( 'dGX',	'dG',	description='Free energy change upon binding to a site flanked by two unoccupied' )
+		self.add_parameter( 'dGY',	'dG',	description='Free energy change upon binding to a site flanked by one occupied' )
+		self.add_parameter( 'dGZ',	'dG',	description='Free energy change upon binding to a site flanked by two occupied' )
+
+	def set_energies(self,T0,T):
+		for i in xrange(self.nconfigs):
+			self.gibbs[i] = 0.0
+			
+			for j in xrange(self.nsites):
+				if self.get_site_occupancy(i,j): # is site occupied?
+					
+					if self.get_site_occupancy(i,j+1): # is the next neighboring site occupied?
+						if self.get_site_occupancy(i,j-1): # is previous neighboring site occupied?
+							self.gibbs[i]+= self.params['dGZ']
+							
+						elif self.circular:
+							self.gibbs[i]+= self.params['dGY']
+							
+					elif self.get_site_occupancy(i,j-1):
+						self.gibbs[i]+= self.params['dGY']
+						
+					elif self.circular:
+						self.gibbs[i]+= self.params['dGX']
+
+	def Q(self,T0,T,concentrations):
+		pops = []
+		print T
+		self.set_energies(T0,T)
+		for i,c in enumerate(concentrations):
+			pops.append( [0.0]*(self.nsites+1) )
+			
+			self.set_probabilities(c['Lattice'],c['Ligand'],T)
+			for j in xrange(self.nconfigs):
+				pops[i][self.bound[j]] += self.weights[j]
+
+		return pops
+
+if __name__ == "__main__":
+
+	model = NonAdditiveMS()
+	model.set_params(-27000,-27000,-30000)
+	
+	sim = ITCSim(verbose=True)
+
+	sim.set_model(model)
+
+	sim.add_experiment( MSExperiment('data/TRAP_populations_EDDA_old.txt') )	
+	
+	sim.run()
+
+	sim.make_plots(hardcopy=True,hardcopytype='png')
+
+	sim.experiments[0].export_to_file("massspec_old.fit")
+
+	sim.done()

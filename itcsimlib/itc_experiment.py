@@ -13,6 +13,10 @@ class ITCExperimentBase:
 	----------
 	chisq : float
 		If a fit has been generated, the reduced chi-squared goodness-of-fit value.
+	T : float
+		The experimental temperature (in Kelvin).
+	Concentrations : list of dicts
+		The concentrations of the components (in the cell) at each titration point
 			
 	Notes
 	-----
