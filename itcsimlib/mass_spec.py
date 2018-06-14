@@ -52,10 +52,12 @@ class MSExperiment(ITCExperimentBase):
 		assert sigma > 0.0
 
 		self.sigma = sigma
+		
+		self.path = path
 		if title:
 			self.title = title
 		else:
-			self.title = os.path.splitext(os.path.basename(path))[0]
+			self.title = os.path.splitext(os.path.basename(self.path))[0]
 
 		# patches to play nice with the ITCExperimentBase base class constructor
 		V0,injections,dQ = 1.0,[1.0],[1.0]
@@ -78,15 +80,20 @@ class MSExperiment(ITCExperimentBase):
 				elif line[0] in ["#"]: # comment
 					continue
 				elif line[0] in ["@"]: # set a variable
-					tmp = line[0].split()
+					tmp = line.split()
 
 					# hacky experimental file parameter parser. TODO: use ConfigParser in Python 3 to handle file header string
 					try:
-						if tmp[0] == "@T":
+						if tmp[0] == "@Temperature":
 							try:
 								self.T = float(tmp[2])
 							except ValueError:
-								raise Exception("Found malformed temperature argument in experiment header (could not convert \"%s\" to a number) at line %i"%(tmp[2],i+1))
+								raise Exception("Found malformed Temperature argument in experiment header (could not convert \"%s\" to a number) at line %i"%(tmp[2],i+1))
+						elif tmp[0] == "@Error":
+							try:
+								self.sigma = float(tmp[2])
+							except ValueError:
+								raise Exception("Found malformed Error argument in experiment header (could not convert \"%s\" to a number) at line %i"%(tmp[2],i+1))
 						elif tmp[0] == "@Title":
 							self.title = " ".join(tmp[2:])
 						elif tmp[0] == "@Lattice":
@@ -197,7 +204,8 @@ class MSExperiment(ITCExperimentBase):
 		pyplot.draw()
 
 		if hardcopy:
-			fig.savefig( os.path.join(hardcopydir,"%s%s.%s"%(hardcopyprefix,self.title,hardcopytype)), bbox_inches='tight')
+			tmp = os.path.splitext(os.path.basename(self.path))[0]
+			fig.savefig( os.path.join(hardcopydir,"%s%s.%s"%(hardcopyprefix,tmp,hardcopytype)), bbox_inches='tight')
 			pyplot.close(fig)
 		else:
 			pyplot.show()

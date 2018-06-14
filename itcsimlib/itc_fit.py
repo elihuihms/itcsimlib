@@ -181,19 +181,21 @@ class ITCFit:
 		else:
 			return self.estimate_bootstrap( params, *args, **kwargs )
 	
-	def estimate_sigma(self, params=[], opt_params=None, sigma=None, stdevs=1, estimate=0.1, rootfinder='bisect', tolerance=0.001 ):
+	def estimate_sigma(self, params=[], params_opt=None, sigma=None, stdevs=1, estimate=0.1, rootfinder='bisect', tolerance=0.001 ):
 		"""Generate high and low parameter value estimates for optimized parameters according to the provided criterion
 				
 		Arguments
 		---------
 		params : list of strings
 			The names of the model parameters to find intervals for.
-		opt_params : dict of strings
-			The names of the model parameters to optimize. Setting to None implies that all available model parameters will be optimized, except the parameter that is being evaluated.
+		params_opt : list of strings
+			The names of the model parameters to optimize. Setting to None implies that all available model parameters will be optimized (except the parameter that is being evaluated).
 		sigma : float
 			The critical chisq value of the overall fit to use for estimating a parameter's expected maximum and minimum (to be used in lieu of the stdevs parameter) 
 		stdevs : int
 			The number of standard deviations above the best-fit chi-square value to use as the critical cutoff for estimating a parameter's expected maximum and minimum (to be used in lieu of the sigma parameter)
+		estimate : float
+			A guess of how large the change from the optimized parameter values should be (up or down) in order to generate the critical chi-square value.
 		rootfinder : string
 			The algorithm used to find the root of the target function ("bisect" or "secant")
 		tolerance : float
@@ -206,15 +208,11 @@ class ITCFit:
 		"""
 		
 		assert rootfinder in ("bisect","secant")
-				
+		
+		model_params = self.sim.get_model_params()
+
 		# starting parameter values to restore later
 		start_params = self.sim.get_model_params().copy()
-		
-		# get the remaining model parameters that are to be optimized while the selected param is gridded 
-		if opt_params == None:
-			model_params = self.sim.get_model_params().copy()
-		else:
-			model_params = OrderedDict( (p,self.sim.get_model_param(p)) for p in model_params )
 		
 		if sigma == None: # calculate the expected sigma based on the number of observations
 			# Andrae, Rene, Tim Schulze-Hartung, and Peter Melchior. "Dos and don'ts of reduced chi-squared." arXiv preprint arXiv:1012.3754 (2010).
@@ -227,16 +225,19 @@ class ITCFit:
 		for p in params:
 			param_values[p] = [None,None]
 
-			opt_params = model_params.copy()
+			if params_opt == None: # get the model parameters that are to be optimized while the param "p" is gridded
+				params_opt = self.sim.get_model_params().keys()
+
 			try: # remove the parameter to be held constant from the list of those to be optimized
-				del opt_params[p]
-			except KeyError:
+				params_opt.remove(p)
+			except ValueError:
 				pass
 
 			def target_function( x ): # return the discrepancy between the critical chisq and the chisq of the best fit when parameter p is fixed to argument x
 				self.sim.set_model_param(p,x)
-				return critical_chisq - self.optimize(opt_params)[1]
+				return critical_chisq - self.optimize(params_opt)[1]
 
+			# find a LOW value for the model parameter "p" that exceeds the critical chi-square value (to serve as a bracketing point for starting the boundary search)
 			self.sim.set_model_params(**start_params)
 			estimate_counter,param_values[p][0] = estimate,model_params[p] * (1.0-estimate)
 			chisq_diff = target_function( param_values[p][0] )
@@ -247,12 +248,13 @@ class ITCFit:
 				param_values[p][0] = model_params[p] * (1.0-estimate_counter)
 				chisq_diff = target_function( param_values[p][0] )
 			
-			# actually find the param value that provides the desired confidence interval
+			# find the low param value that provides the desired confidence interval
 			if rootfinder == "secant":
-				param_values[p][0] = scipy.optimize.brentq( target_function, model_params[p], param_values[p][0], xtol=tolerance )
+				param_values[p][0] = scipy.optimize.brentq(target_function, model_params[p], param_values[p][0], xtol=tolerance)
 			else:
 				param_values[p][0] = sum(self._noisy_bisect(target_function, model_params[p], param_values[p][0], sigma, chisq_diff, tolerance))/2.0
-				
+			
+			# find a HIGH value for the model parameter "p" that exceeds the critical chi-square value (to serve as a bracketing point for starting the boundary search)
 			self.sim.set_model_params(**start_params)
 			estimate_counter,param_values[p][1] = estimate,model_params[p] * (1.0+estimate)
 			chisq_diff = target_function( param_values[p][1] )
@@ -263,9 +265,9 @@ class ITCFit:
 				param_values[p][1] = model_params[p] * (1.0+estimate_counter)
 				chisq_diff = target_function( param_values[p][1] )
 			
-			# actually find the param value that provides the desired confidence interval
+			# find the high param value that provides the desired confidence interval
 			if rootfinder == "secant":
-				param_values[p][1] = scipy.optimize.brentq( target_function, model_params[p], param_values[p][1], xtol=tolerance )
+				param_values[p][1] = scipy.optimize.brentq(target_function, model_params[p], param_values[p][1], xtol=tolerance)
 			else:
 				param_values[p][1] = sum(self._noisy_bisect(target_function, model_params[p], param_values[p][1], sigma, chisq_diff, tolerance))/2.0
 

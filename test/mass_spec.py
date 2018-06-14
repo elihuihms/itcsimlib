@@ -30,7 +30,7 @@ class TestMSExperiment(TestITCBase):
 		from itcsimlib.mass_spec import MSExperiment
 		E = MSExperiment('./data/massspec_1.txt')
 		Q = np.zeros(shape=(E.npoints,E.npops))
-		self.assertEqual( round(E.get_chisq(Q),1), 11.7 )
+		self.assertEqual(round(E.get_chisq(Q),1), 292.8)
 
 class TextMSModel(TestITCBase):
 	def setUp(self):
@@ -63,7 +63,7 @@ class TextMSModel(TestITCBase):
 		self.sim.add_experiment( MSExperiment('./data/massspec_1.txt') )
 		self.sim.set_model( M )
 		
-		self.assertEqual(round(self.sim.run(),1),1.8)
+		self.assertEqual(round(self.sim.run(),1), 43.9)
 	
 if __name__ == '__main__':
 	unittest.main()
