@@ -12,5 +12,6 @@ from base import *
 from model import *
 from trap import *
 from drakon import *
+from mass_spec import *
 
 unittest.main()

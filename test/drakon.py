@@ -27,22 +27,22 @@ class DRAKONModel(DRAKONIsingModel):
         self.add_parameter("dCp_oo",type="dCp")
     def site(self, i, j):
         if self.occupied(i,j) == True:
-            self.add_dG(i, self.dG_0, dH=self.dH_0, dCp=self.dCp_0 )
-            self.add_dH(i, self.dH_0, dCp=self.dCp_0 )
+            self.add_dG(i, "dG_0", dH="dH_0", dCp="dCp_0" )
+            self.add_dH(i, "dH_0", dCp="dCp_0" )
             if self.occupied(i,j-1) == True:
                 if self.occupied(i,j+1) == True:
-                    self.add_dG(i, self.dG_oo, dH=self.dH_oo, dCp=self.dCp_oo )
-                    self.add_dH(i, self.dH_oo, dCp=self.dCp_oo )
+                    self.add_dG(i, "dG_oo", dH="dH_oo", dCp="dCp_oo" )
+                    self.add_dH(i, "dH_oo", dCp="dCp_oo" )
                 else:
-                    self.add_dG(i, self.dG_oe, dH=self.dH_oe, dCp=self.dCp_oe )
-                    self.add_dH(i, self.dH_oe, dCp=self.dCp_oe )
+                    self.add_dG(i, "dG_oe", dH="dH_oe", dCp="dCp_oe" )
+                    self.add_dH(i, "dH_oe", dCp="dCp_oe" )
                     if self.occupied(i,j+1) == True:
-                        self.add_dG(i, self.dG_oe, dH=self.dH_oe, dCp=self.dCp_oe )
-                        self.add_dH(i, self.dH_oe, dCp=self.dCp_oe )
+                        self.add_dG(i, "dG_oe", dH="dH_oe", dCp="dCp_oe" )
+                        self.add_dH(i, "dH_oe", dCp="dCp_oe" )
             else:
                 if self.occupied(i,j+1) == True:
-                    self.add_dG(i, self.dG_oe, dH=self.dH_oe, dCp=self.dCp_oe )
-                    self.add_dH(i, self.dH_oe, dCp=self.dCp_oe )
+                    self.add_dG(i, "dG_oe", dH="dH_oe", dCp="dCp_oe" )
+                    self.add_dH(i, "dH_oe", dCp="dCp_oe" )
 	
 class TestDRAKONModel(TestModel):
 	def test_drakon_model(self):

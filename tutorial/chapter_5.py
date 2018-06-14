@@ -3,6 +3,7 @@
 #
 
 from itcsimlib import *
+from itcsimlib.manipulator import Manipulator
 
 # In this last chapter, we'll utilize the itcsimlib Manipulator object, which allows the user to modify model parameters in real-time to see their effect on fits.
 

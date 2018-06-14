@@ -17,7 +17,7 @@ sim = ITCSim(verbose=True, threads=1)
 
 sim.set_model(ms_model)
 
-sim.add_experiment( MSExperiment('data/TRAP_populations_EDDA.txt',T=298.15) )	
+sim.add_experiment( MSExperiment('data/TRAP_populations_EDDA.txt') )
 
 sim.run()
 

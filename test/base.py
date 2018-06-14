@@ -19,8 +19,11 @@ class TestITCBase(unittest.TestCase):
 	def setUp(self):
 		self.test_dir = tempfile.mkdtemp()
 		
-	def tearDown(self):
-		shutil.rmtree(self.test_dir)
+	def tearDown(self,clean=True):
+		if clean:
+			shutil.rmtree(self.test_dir)
+		else:
+			print "Temporary file path: %s"%self.test_dir
 		
 	def getFilePath(self,new=False):
 		if new:
@@ -63,14 +66,14 @@ class TestITCExperiment(TestITCBase):
 				noise=1.0,
 				title='Test_Experiment_1'))
 				
-	def test_experiment_plot(self):
+	def test_experiment_export(self):
 		from itcsimlib.itc_experiment import ITCExperiment
 		info,data = read_itcsimlib_exp('./data/base_1.txt')
 		E = ITCExperiment(injections=data[0],dQ=data[1],**info)
 		E.export_to_file( self.getFilePath(True) )
 		self.assertTrue( os.path.isfile(self.getFilePath()) )
 
-	def test_experiment_export(self):
+	def test_experiment_plot(self):
 		from itcsimlib.itc_experiment import ITCExperiment
 		info,data = read_itcsimlib_exp('./data/base_1.txt')
 		E = ITCExperiment(injections=data[0],dQ=data[1],**info)

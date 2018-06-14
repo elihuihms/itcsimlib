@@ -15,6 +15,10 @@ class MSExperiment(ITCExperimentBase):
 		If a fit has been generated, the reduced chi-squared goodness-of-fit value.
 	T : float
 		The experimental temperature (in Kelvin).
+	Lattice : string
+		The name of the lattice component (if it exists, read from the experiment file)
+	Ligand : string
+		The name of the ligand component (if it exists, read from the experiment file)
 	Concentrations : list of dicts
 		The concentrations of the components at each titration point
 	PopIntens : ndarray
@@ -29,7 +33,7 @@ class MSExperiment(ITCExperimentBase):
 		This class abuses several of the usual ITCExperimentBase attributes in a rather dirty fashion - it won't as a simple replacement for many itcsimlib routines, but basic fitting should be OK
 	"""
 		
-	def __init__(self, path, T=273.15, sigma=0.05, title=None):
+	def __init__(self, path, T=298.15, sigma=0.05, title=None):
 		"""Constructor for the MSExperiment object.
 
 		Arguments
@@ -61,7 +65,8 @@ class MSExperiment(ITCExperimentBase):
 
 		# reset key attributes now
 		self.Concentrations = []
-		self.npops,self.npoints = None,0
+		self.npops, self.npoints = None, 0
+		self.Lattice, self.Ligand = "Lattice", "Ligand"
 
 		data = []
 		with open(path) as fh:
@@ -70,7 +75,27 @@ class MSExperiment(ITCExperimentBase):
 				# ignore empty and comment lines
 				if line.strip() == "":
 					continue
-				elif line[0] == "#":
+				elif line[0] in ["#"]: # comment
+					continue
+				elif line[0] in ["@"]: # set a variable
+					tmp = line[0].split()
+
+					# hacky experimental file parameter parser. TODO: use ConfigParser in Python 3 to handle file header string
+					try:
+						if tmp[0] == "@T":
+							try:
+								self.T = float(tmp[2])
+							except ValueError:
+								raise Exception("Found malformed temperature argument in experiment header (could not convert \"%s\" to a number) at line %i"%(tmp[2],i+1))
+						elif tmp[0] == "@Title":
+							self.title = " ".join(tmp[2:])
+						elif tmp[0] == "@Lattice":
+							self.Lattice = tmp[2]
+						elif tmp[0] == "@Ligand":
+							self.Ligand = tmp[2]
+					except IndexError:
+						raise Exception("Found malformed experiment parameter specification at line %i, should be of the format \"@param = value\""%(i+1))
+
 					continue
 
 				# basic error checking
@@ -191,6 +216,7 @@ class MSExperiment(ITCExperimentBase):
 		"""
 		fh = open(path, 'w')
 		
+		fh.write("# %s"%self.title)
 		fh.write("# Experimental data\n")
 		for i in xrange(self.npoints):
 			fh.write("%f\t%f\t%s\n" % (
