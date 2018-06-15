@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 
 from itc_experiment import ITCExperimentBase
@@ -271,53 +272,56 @@ class MSExperiment(ITCExperimentBase):
 
 		return self.chisq
 
-def convert_model(basemodel):
-	"""Convert an existing Ising-based binding model to one that is patched for returning lattice+ligand stoichiometry abundances suitable for fitting mass spec data.
-
-	Arguments
-	---------
-	basemodel : itcsimlib Ising-based model
-		An Ising-based binding model to use as the basis for this model
-
+class MSModel(Ising):
 	"""
+	Class used to convert an existing Ising-based binding model to one that returns lattice+ligand stoichiometry abundances suitable for fitting mass spec data.
+	
+	Note #1: Inherits all attributes of the provided class instance, serves as a passthru using the provided class' set_energies().
+	Note #2: If the provided class instance has overwritten any of the Ising class methods (other than set_energies), you're best off not using this convertor class."""
 
-	# ensure that an Ising-based model has been in fact passed
-	assert "Ising" in [b.__name__ for b in basemodel.__bases__]
+	def __init__(self,model):
+		# ensure that an Ising-based model has been in fact passed
+		assert "Ising" in [b.__name__ for b in model.__class__.__bases__]
 
-	class MSModel(basemodel):
-		"""A class that converts an existing Ising-based class to one capable of simulating mass spec data (i.e. stoichiometry populations)"""
+		# copy all of the (initialized) parent model attributes
+		self.__dict__ = model.__dict__.copy()
+		self.model = model
 
-		def Q(self,T0,T,concentrations):
-			"""Return a 2D numpy array consisting of the base model's relative stoichiometries at each of the provided component concentrations.
+	def set_energies(self,T0,T):
+		"""Update the parent model parameters with whatever we currently have, and set the parent model config energies"""
+		self.units = self.model.units
+		self.model.params = self.params
+		self.model.set_energies(T0,T)
+
+	def Q(self,T0,T,concentrations):
+		"""Return a 2D numpy array consisting of the base model's relative stoichiometries at each of the provided component concentrations.
+		
+		Arguments
+		---------
+		T0 : float
+			The reference temperature of the simulation.
+		T : float
+			The temperature of the experiment to simulate.
+		concentrations : list of dicts
+			The concentrations of each component at each titration point.
+		
+		Returns
+		-------
+		ndarray
+			The normalized abundances of each lattice+ligand stoichiometries at each of the provided component concentrations.
+		"""
+
+		# set the energies of this model's configs from the base model
+		self.set_energies(T0,T)
+
+		ret = np.zeros((len(concentrations),self.model.nsites+1))
+		for i,c in enumerate(concentrations):
 			
-			Arguments
-			---------
-			T0 : float
-				The reference temperature of the simulation.
-			T : float
-				The temperature of the experiment to simulate.
-			concentrations : list of dicts
-				The concentrations of each component at each titration point.
+			# set the probabilities (weights) for all configurations
+			self.model.set_probabilities(c['Lattice'],c['Ligand'],T)
 			
-			Returns
-			-------
-			ndarray
-				The normalized abundances of each lattice+ligand stoichiometries at each of the provided component concentrations.
-			"""
+			# for each stoichiometry, add up the configuration weights
+			for j in xrange(self.model.nconfigs):
+				ret[i][self.model.bound[j]] += self.model.weights[j]
 
-			# set the energies of this model's configs from the base model
-			self.set_energies(T0,T)
-
-			ret = np.zeros((len(concentrations),self.nsites+1))
-			for i,c in enumerate(concentrations):
-				
-				# set the probabilities (weights) for all configurations
-				self.set_probabilities(c['Lattice'],c['Ligand'],T)
-				
-				# for each stoichiometry, add up the configuration weights
-				for j in xrange(self.nconfigs):
-					ret[i][self.bound[j]] += self.weights[j]
-
-			return ret
-
-	return MSModel
+		return ret

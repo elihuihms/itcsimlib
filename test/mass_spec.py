@@ -32,10 +32,10 @@ class TestMSExperiment(TestITCBase):
 		Q = np.zeros(shape=(E.npoints,E.npops))
 		self.assertEqual(round(E.get_chisq(Q),1), 292.8)
 
-class TextMSModel(TestITCBase):
+class TestMSModel(TestITCBase):
 	def setUp(self):
 		TestITCBase.setUp(self)
-		self.sim = ITCSim(T0=298.15,units="kcal",verbose=True,threads=1)
+		self.sim = ITCSim(T0=298.15,verbose=True,threads=1)
 		
 	def tearDown(self):
 		TestITCBase.tearDown(self)
@@ -43,27 +43,27 @@ class TextMSModel(TestITCBase):
 
 	def test_convert_model(self):
 		from itcsimlib.model_ising import NonAdditive
-		from itcsimlib.mass_spec import convert_model
+		from itcsimlib.mass_spec import MSModel
 
-		MSNonAdditive = convert_model(NonAdditive)
-		M = MSNonAdditive(nsites=11,circular=1)
+		M = MSModel(NonAdditive(nsites=11,circular=1))
 		M.set_params(dGX=-27000,dGY=-27000,dGZ=-30000)
 
 		self.assertIsNotNone(M)
 
 	def test_run(self):
 		from itcsimlib.model_ising import NonAdditive
-		from itcsimlib.mass_spec import convert_model,MSExperiment
+		from itcsimlib.mass_spec import MSModel,MSExperiment
 
-		MSNonAdditive = convert_model(NonAdditive)
-		M = MSNonAdditive(nsites=11,circular=1)
+		M = MSModel(NonAdditive(nsites=11,circular=1))
 		M.set_params(dGX=-27000,dGY=-27000,dGZ=-30000)
 
 		self.sim.remove_all_experiments()
 		self.sim.add_experiment( MSExperiment('./data/massspec_1.txt') )
 		self.sim.set_model( M )
-		
 		self.assertEqual(round(self.sim.run(),1), 43.9)
+
+		self.sim.set_model_params(dGX=-27000,dGY=-25000,dGZ=-30000)
+		self.assertEqual(round(self.sim.run(),1), 135.5)
 	
 if __name__ == '__main__':
 	unittest.main()

@@ -6,11 +6,11 @@
 
 from itcsimlib import *
 from itcsimlib.model_ising import NonAdditive
-from itcsimlib.mass_spec import MSExperiment,convert_model
+from itcsimlib.mass_spec import MSExperiment, MSModel
 
-MSNonAdditive = convert_model(NonAdditive)
+itc_model = NonAdditive(nsites=11,circular=1)
 
-ms_model = MSNonAdditive(nsites=11,circular=1)
+ms_model = MSModel(itc_model)
 ms_model.set_params(dGX=-27000,dGY=-27000,dGZ=-30000)
 
 sim = ITCSim(verbose=True, threads=1)

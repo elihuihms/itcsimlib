@@ -90,7 +90,7 @@ class TestITCExperiment(TestITCBase):
 class TestITCSIM(TestITCBase):
 	def setUp(self):
 		TestITCBase.setUp(self)
-		self.sim = ITCSim(T0=298.15,units="kcal",verbose=True,threads=1)
+		self.sim = ITCSim(T0=298.15,units="kcal",verbose=True,threads=2)
 		
 	def tearDown(self):
 		TestITCBase.tearDown(self)
