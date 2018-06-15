@@ -42,10 +42,10 @@ class TestITCUtilities(TestITCBase):
 		
 	def test_read_experiment_file(self):
 		s = pickle.dumps( read_itcsimlib_exp('./data/base_1.txt'), 0 )
-		self.assertEqual( s, self.getFileContents("./data/base_1.obj") )
+		self.assertEqual( s, self.getFileContents("./data/base_1.test") )
 		
 	def test_savitsky_golay_filter(self):
-		data = pickle.load( open("./data/base_1.obj") )
+		data = pickle.load( open("./data/base_1.test") )
 		spl = savitzky_golay( data[1][1], window_size=7, order=1 )
 		self.assertEqual( round(sum(spl),2), -28.66 )
 
