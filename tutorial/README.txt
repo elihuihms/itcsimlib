@@ -23,5 +23,5 @@ Chapter 4 covers the development of new models.
 Chapter 5 covers the use of the manipulator object, which permits real-time visualization of model parameter effects.
 
 #
-# As always, if you need help or have constructive criticism, please drop the author a line at elihuihms@elihuihms.com.
+# As always, if you need help or have constructive criticism, please drop the author a line at mail@elihuihms.com.
 #

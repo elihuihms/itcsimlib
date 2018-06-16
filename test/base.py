@@ -90,13 +90,13 @@ class TestITCExperiment(TestITCBase):
 class TestITCSIM(TestITCBase):
 	def setUp(self):
 		TestITCBase.setUp(self)
-		self.sim = ITCSim(T0=298.15,units="kcal",verbose=True,threads=2)
+		self.sim = ITCSim(T0=298.15,units="kcal",verbose=True)
 		
 	def tearDown(self):
 		TestITCBase.tearDown(self)
 		self.sim.done()
 
-	def test_run(self):
+	def test_run_singlethread(self):
 		from itcsimlib.model_independent import OneMode
 		
 		self.sim.remove_all_experiments()
@@ -104,13 +104,46 @@ class TestITCSIM(TestITCBase):
 				T=298.15,
 				V0=1416.6,
 				injections=[5.0]*50,
+				noise=1,
 				Cell={"Macromolecule":1E-6},
 				Syringe={"Ligand":30E-6},
 				title='Test_Experiment_1')
 		self.sim.set_model( OneMode() )
 		self.sim.set_model_params(n=1.805,dG=-10.94,dH=-11.75,dCp=0.0)
-		
-		self.assertEqual(self.sim.run(),1.0)
+		self.sim.run()
+		self.sim.set_model_params(n=2,dG=-11,dH=-12,dCp=0.0)
+		self.sim.run()
+
+		self.assertTrue( self.sim.run() > 1 )
+
+	def test_run_multithread(self):
+		from itcsimlib.model_independent import OneMode
+
+		multi = ITCSim(T0=298.15,units="kcal",verbose=True,threads=None)
+		multi.add_experiment_synthetic(
+				T=298.15,
+				V0=1416.6,
+				injections=[5.0]*50,
+				noise=1,
+				Cell={"Macromolecule":1E-6},
+				Syringe={"Ligand":30E-6},
+				title='Test_Experiment_1')
+		multi.add_experiment_synthetic(
+				T=298.15,
+				V0=1416.6,
+				injections=[5.0]*50,
+				noise=0.05,
+				Cell={"Macromolecule":2E-6},
+				Syringe={"Ligand":60E-6},
+				title='Test_Experiment_2')
+		multi.set_model( OneMode() )
+		multi.set_model_params(n=1.805,dG=-10.94,dH=-11.75,dCp=0.0)
+		multi.run()
+		multi.set_model_params(n=2,dG=-11,dH=-12,dCp=0.0)
+
+		self.assertTrue( multi.run() > 1 )
+
+		multi.done()
 
 class TestITCFit(TestITCSIM):
 	def setUp(self):

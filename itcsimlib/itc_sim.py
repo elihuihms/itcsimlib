@@ -19,7 +19,7 @@ class ITCSim:
 		The model used by the simulator to generate/fit data.
 	"""
 
-	def __init__(self,T0=298.15,units='J',verbose=False,threads=None):
+	def __init__(self,T0=298.15,units='J',verbose=False,threads=0):
 		"""Constructor for the ITCSim class.
 		
 		Arguments
@@ -31,7 +31,7 @@ class ITCSim:
 		verbose : boolean
 			Write extra information to stdout?
 		threads : int
-			Number of threads to use when simulating ITC data. Default (None) uses all available cores.
+			Number of threads to use when simulating ITC data. Default (0) disables multiprocessing, None uses all available cores.
 		"""
 		
 		self.T0	= T0 # reference temperature
@@ -45,7 +45,10 @@ class ITCSim:
 		self.model = None
 		self.in_Queue,self.out_Queue = multiprocessing.Queue(),multiprocessing.Queue()
 
-		if threads==None or threads<1:
+		# Enable/diable multithreading, avoids __name__ guards on Windows
+		if threads == 1:
+			threads = 0
+		elif threads == None:
 			threads = multiprocessing.cpu_count()
 		self.workers = [None] * threads
 
@@ -349,28 +352,40 @@ class ITCSim:
 		float
 			The average reduced chi-squared goodness-of-fit across the experiments.	
 		"""
-		if experiments:
+		if experiments == None:
+			experiments = self.experiments
+
+		if len(experiments) == 0:
+			print "itc_sim: No experiments to simulate."
+			return None
+
+		# without multiprocessing (avoids requirement for __name__ guards in Windows)
+		if len(self.workers) == 0:
+			self.model.start()
+
+			for E in experiments:
+				data = self.model.Q( self.T0, E.T, E.Concentrations )
+				self.chisq[E.title] = E.get_chisq(data,writeback)
+
+			self.model.stop()
+
+		# with multiprocessing
+		else:
 			for E in experiments:
 				self.in_Queue.put( (self.model.get_params(units=self.units),E) )
-		else:
-			if self.size == 0:
-				print "itc_sim: No experiments to simulate."
-				return None
-			for E in self.experiments:
-				self.in_Queue.put( (self.model.get_params(units=self.units),E) )
 
-		queue_contents = []
-		while len(queue_contents) < self.size:
-			queue_contents.append( self.out_Queue.get(True) )
+			queue_contents = []
+			while len(queue_contents) < self.size:
+				queue_contents.append( self.out_Queue.get(True) )
 
-		for title,data in queue_contents:
-			# in the case of an exception during model execution, title will be None
-			if title == None:
-				print "\nitc_sim: Fatal error during model evalution: %s"%(data)
-				self.done()
-				return None
-			else:
-				self.chisq[title] = self.get_experiment_by_title(title).get_chisq(data,writeback)
+			for title,data in queue_contents:
+				# in the case of an exception during model execution, title will be None
+				if title == None:
+					print "\nitc_sim: Fatal error during model evalution: %s"%(data)
+					self.done()
+					return None
+				else:
+					self.chisq[title] = self.get_experiment_by_title(title).get_chisq(data,writeback)
 
 		return self.get_chisq()
 

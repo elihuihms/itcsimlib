@@ -24,37 +24,38 @@ from itcsimlib import ITCSim,ITCFit
 from itcsimlib.model_trap import SKa
 from itcsimlib.utilities import *
 
-sim = ITCSim(T0=273.15+40,verbose=True,threads=6)
-sim.set_model( SKa() )
-sim.set_model_params(
-	dG0=-32157.324179654042,
-	dGb=-1915.3395538189311,
-	dH0=-88297.98259332242,
-	dHb=6385.4580531436668,
-	dCp0=-1663.5157839533472,
-	dCpb=96.05928066671521
-	)
-	
-sim.add_experiment_file( 'data/20C-01-TRAPstk-TrpA.txt', skip=[0],	Q_dil=8.524E+4  )
-sim.add_experiment_file( 'data/35C-01-TRAPstk-TrpA.txt', skip=[0],	Q_dil=2.174E+5 )
-sim.add_experiment_file( 'data/40C-01-TRAPstk-TrpA.txt', skip=[0,1],Q_dil=6.521E+4 )
-sim.add_experiment_file( 'data/45C-01-TRAPstk-TrpA.txt', skip=[0],	Q_dil=3.057E+5 )
-sim.add_experiment_file( 'data/55C-01-TRAPstk-TrpB.txt', skip=[0],	Q_dil=1.237E+5 )
-sim.add_experiment_file( 'data/65C-01-TRAPstk-TrpB.txt', skip=[0,85,91],	Q_dil=3.673E+5 )
+if __name__ == "__main__": # multiprocessing execution guards (only necessary for Windows, and if sim threads > 1)
+	sim = ITCSim(T0=273.15+40,verbose=True,threads=6)
+	sim.set_model( SKa() )
+	sim.set_model_params(
+		dG0=-32157.324179654042,
+		dGb=-1915.3395538189311,
+		dH0=-88297.98259332242,
+		dHb=6385.4580531436668,
+		dCp0=-1663.5157839533472,
+		dCpb=96.05928066671521
+		)
+		
+	sim.add_experiment_file( 'data/20C-01-TRAPstk-TrpA.txt', skip=[0],	Q_dil=8.524E+4  )
+	sim.add_experiment_file( 'data/35C-01-TRAPstk-TrpA.txt', skip=[0],	Q_dil=2.174E+5 )
+	sim.add_experiment_file( 'data/40C-01-TRAPstk-TrpA.txt', skip=[0,1],Q_dil=6.521E+4 )
+	sim.add_experiment_file( 'data/45C-01-TRAPstk-TrpA.txt', skip=[0],	Q_dil=3.057E+5 )
+	sim.add_experiment_file( 'data/55C-01-TRAPstk-TrpB.txt', skip=[0],	Q_dil=1.237E+5 )
+	sim.add_experiment_file( 'data/65C-01-TRAPstk-TrpB.txt', skip=[0,85,91],	Q_dil=3.673E+5 )
 
-print sim.run()
-sim.make_plots(hardcopy=True,hardcopyprefix="pre_",hardcopytype='pdf')
+	print sim.run()
+	sim.make_plots(hardcopy=True,hardcopyprefix="pre_",hardcopytype='pdf')
 
-fit = ITCFit( sim, verbose=True )
-opt,chisq = fit.optimize( params=sim.get_model_params() )
-sim.set_model_params( **opt )
+	fit = ITCFit( sim, verbose=True )
+	opt,chisq = fit.optimize( params=sim.get_model_params() )
+	sim.set_model_params( **opt )
 
-sim.make_plots(hardcopy=True,hardcopyprefix="post_",hardcopytype='pdf')
+	sim.make_plots(hardcopy=True,hardcopyprefix="post_",hardcopytype='pdf')
 
-write_params_to_file( 'fit.txt', opt )
+	write_params_to_file( 'fit.txt', opt )
 
-for p in sim.get_model_params():
-	ret = fit.estimate_sigma( params=[p], method='bisect', stdevs=1 )
-	write_data_to_file( 'est_%s.log'%p, str(ret) )
+	for p in sim.get_model_params():
+		ret = fit.estimate_sigma( params=[p], method='bisect', stdevs=1 )
+		write_data_to_file( 'est_%s.log'%p, str(ret) )
 
-sim.done()
+	sim.done()
