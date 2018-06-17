@@ -23,7 +23,7 @@ class ITCExperimentBase:
 		Energies are stored in Joules internally, and then converted (if necessary) to the desired unit when retrieved by the user.
 	"""
 
-	def __init__(self, T, V0, injections, dQ, Cell, Syringe, skip=[], ddQ=[], Q_dil=0.0, cellRef=None, syringeRef=None, title=None, units='J'):
+	def __init__(self, T, V0, injections, dQ, Cell, Syringe, skip=[], dQ_err=[], Q_dil=0.0, cellRef=None, syringeRef=None, title=None, units='J'):
 		"""Constructor for the ITCExperiment object.
 
 		Arguments
@@ -42,7 +42,7 @@ class ITCExperimentBase:
 			The concentration of the named components in the syringe.
 		skip : list of ints
 			Titration points to exclude during fitting.
-		ddQ : list of floats
+		dQ_err : list of floats
 			List of estimated error in each titration point enthalpy.
 		Q_dil : float
 			Heat of dilution for syringe solution.
@@ -114,12 +114,19 @@ class ITCExperimentBase:
 			else:
 				self.dQ_dil[i] = (1.0 -self.dDQ_conc[i] -self.dDQ_conc[i-1]) * self.Q_dil
 
-		# convert raw data (in calories) to joules (note that this is not normalized per mol of injectant!)
 		assert len(dQ) == self.npoints
+
+		# convert raw data (in calories) to joules (note that this is not normalized per mol of injectant!)
 		self.dQ_exp = scipy.array([J_from_cal(dQ[i]) for i in xrange(self.npoints)],dtype='d')
 		self.dQ_fit	= None
-		self.ddQ = ddQ
 		self.spline = None
+
+		if dQ_err == []:
+			self.dQ_err = None
+		else:
+			assert len(dQ_err) == self.npoints
+			self.dQ_err = scipy.array([J_from_cal(dQ_err[i]) for i in xrange(self.npoints)],dtype='d')
+
 		self.chisq	= None
 		self.initialized = False # will be set to True by implementors of this base class
 	
@@ -236,18 +243,15 @@ class ITCExperimentBase:
 		tmpx = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in xrange(self.npoints) if i not in self.skip ]
 		tmpy = [ convert_from_J(self.units,self.dQ_exp[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in xrange(self.npoints) if i not in self.skip ]
 		
-		if self.ddQ == []:
-			tmpd = [ 0.0 for i in xrange(self.npoints) if i not in self.skip  ]
-		else:
-			tmpd = [ convert_from_J(self.units,self.ddQ[i]) for i in xrange(self.npoints) if i not in self.skip ]
+		if self.dQ_err is not None:
+			tmpd = [ convert_from_J(self.units,self.dQ_err[i]) for i in xrange(self.npoints) if i not in self.skip ]
+			pyplot.errorbar(tmpx,tmpy,yerr=tmpd,c='#000000',fmt='s')
 
-		pyplot.errorbar(tmpx,tmpy,yerr=tmpd,c='#000000',fmt='s')
-
-		if getattr(self,'spline',False):
+		if self.spline is not None:
 			tmpz = [ convert_from_J(self.units,self.spline[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in xrange(self.npoints) if i not in self.skip ]
 			pyplot.plot(tmpx,tmpz,c='g')
 
-		if getattr(self,'dQ_fit',False):
+		if self.dQ_fit is not None:
 			tmpy = [ convert_from_J(self.units,self.dQ_fit[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in xrange(self.npoints) if i not in self.skip ]
 			pyplot.plot(tmpx,tmpy,c='r')
 
@@ -305,14 +309,24 @@ class ITCExperimentBase:
 		h.write("# skip %s\n"%(",".join(map(str,self.skip))))
 		
 		if full:
-			h.write("#\n# Ivol	dQ_exp	ddQ_exp dQ_fit	dQ_spline	skipped	%s	%s\n"%("\t".join(self.Cell.keys()),"\t".join(self.Syringe.keys())))
+			h.write("#\n# Ivol	dQ_exp	dQ_err_exp dQ_fit	dQ_spline	skipped	%s	%s\n"%("\t".join(self.Cell.keys()),"\t".join(self.Syringe.keys())))
 		else:
 			h.write("#\n# Ivol	dQ_exp\n")
 		
-		if self.spline == None:
-			spline = [0 for i in xrange(self.npoints)]
+		if self.dQ_fit is None:
+			fit = [0.0]*self.npoints
 		else:
-			spline = self.spline[:]
+			fit = self.dQ_fit
+
+		if self.spline is None:
+			spline = [0.0]*self.npoints
+		else:
+			spline = self.spline
+
+		if self.dQ_err is None:
+			dQ_err = [0.0]*self.npoints
+		else:
+			dQ_err = self.dQ_err
 
 		for i in xrange(self.npoints):
 			cell	= ["%.5E"%(self.Concentrations[i][s]) for s in self.Cell]
@@ -321,8 +335,8 @@ class ITCExperimentBase:
 				h.write("%.5f	%.5E	%.5E	%.5E	%.5E	%i	%s	%s\n"%(
 					self.injections[i],
 					convert_from_J(units,self.dQ_exp[i]),
-					convert_from_J(units,self.ddQ[i]),
-					convert_from_J(units,self.dQ_fit[i]),
+					convert_from_J(units,dQ_err[i]),
+					convert_from_J(units,dQ_fit[i]),
 					convert_from_J(units,spline[i]),
 					(i in self.skip),
 					"\t".join(cell),
@@ -341,16 +355,12 @@ class ITCExperimentBase:
 		Q : list of floats
 			The predicted total heat at each injection point.
 		writeback : boolean
-			Update the experiment's simulated heat attribute (dQ_fit) with the provided Qs?
+			Update the experiment's simulated heat attribute (dQ_fit) with the provided Qs, as well as the chisq value?
 			
 		Returns
 		-------
 		float
-			The goodness of the fit, as a reduced chi-square.
-
-		Notes
-		-----
-			Even if the experiment's dQ_fit attribute is not updated, it's chisq property will be.
+			The goodness of the fit, as a reduced chi-square or as a sum-of-squares if a experimental error in dQ was not provided.
 		"""
 		
 		dV = 0.0
@@ -367,15 +377,21 @@ class ITCExperimentBase:
 				dQ[i] = Q[i] + ( (self.injections[i]/self.V0)*((Q[i]+Q[i-1])/2.0) ) - Q[i-1]
 			
 			dQ[i] += self.dQ_dil[i] # add heat of dilution
+
+		if self.dQ_err is None:
+			dQ_err = [1.0]*self.npoints
+		else:
+			dQ_err = self.dQ_err
+
+		# calculate reduced chi-square / SOS value using error estimate
+		chisq = sum([(self.dQ_exp[i] - dQ[i])**2 / dQ_err[i]**2 for i in xrange(self.npoints) if i not in self.skip])
+		chisq /= (self.npoints -len(self.skip)) # reduced chi-square corrected for n degrees of freedom
 			
 		if writeback:
 			self.dQ_fit = dQ[:]
+			self.chisq = chisq
 
-		# calculate reduced chi-square value using error estimate
-		self.chisq = sum([(self.dQ_exp[i] - dQ[i])**2 / self.ddQ[i]**2 for i in xrange(self.npoints) if i not in self.skip])
-		self.chisq /= (self.npoints -len(self.skip)) # reduced chi-square corrected for n degrees of freedom
-
-		return self.chisq
+		return chisq
 		
 class ITCExperiment(ITCExperimentBase):
 	"""An object that encapsulates an empirical (i.e. "real") ITC experiment.
@@ -403,11 +419,7 @@ class ITCExperiment(ITCExperimentBase):
 
 		ITCExperimentBase.__init__(self,*args,**kwargs)
 	
-		if self.ddQ != []:
-			assert len(ddQ) == self.npoints
-			self.ddQ = scipy.array(ddQ[:],dtype='d')
-			self.spline = None
-		else: # estimate errors by fitting spline
+		if self.dQ_err is None: # estimate errors by fitting spline
 			counter,tmp = 0,[0]*self.npoints
 			for i in xrange(self.npoints):
 				if i not in self.skip:
@@ -416,7 +428,7 @@ class ITCExperiment(ITCExperimentBase):
 
 			spl = savitzky_golay([self.dQ_exp[i] for i in xrange(self.npoints) if i not in self.skip], spline_pts, spline_order )
 			err = scipy.std([self.dQ_exp[i] - spl[tmp[i]] for i in xrange(self.npoints) if i not in self.skip])
-			self.ddQ = [err]*self.npoints
+			self.dQ_err = [err]*self.npoints
 			self.spline = [spl[tmp[i]] for i in xrange(self.npoints)]
 		
 		self.initialized = True
@@ -481,15 +493,13 @@ class ITCExperimentSynthetic(ITCExperimentBase):
 		if not self.initialized:
 			
 			if self.noise:
-				self.ddQ = [self.noise]*self.npoints
+				self.dQ_err = [self.noise]*self.npoints
 				ret = ITCExperimentBase.get_chisq(self, Q[:], writeback=True)
 				self.dQ_exp = [scipy.random.normal(self.dQ_fit[i],self.noise) for i in xrange(self.npoints)]
-				self.dQ_fit = None
 			elif self.noise == 0 or self.noise == None:
-				self.ddQ = [1.0]*self.npoints
 				ITCExperimentBase.get_chisq(self, Q[:], writeback=True)
+				self.chisq = 1.0
 				self.dQ_exp = self.dQ_fit[:]
-				self.dQ_fit = None
 				ret = 1.0
 
 			self.initialized = True			

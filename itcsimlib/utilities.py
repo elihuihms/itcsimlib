@@ -79,7 +79,7 @@ def read_itcsimlib_exp( file, exp_args={} ):
 	if len(data) == 2:
 		return ITCExperiment(injections=data[0],dQ=data[1],**kwargs)
 	elif len(data) == 3:
-		return ITCExperiment(injections=data[0],dQ=data[1],ddQ=data[2],**kwargs)
+		return ITCExperiment(injections=data[0],dQ=data[1],dQ_err=data[2],**kwargs)
 	else:
 		return None # TODO : parser errors
 
@@ -96,15 +96,21 @@ def write_itcsimlib_pickle( path, experiment ):
 		return pickle.dump(experiment, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 def read_nitpic_exp( file, exp_args={}, recalc_concs=False ):
+	from scipy import array
 	from .itc_experiment import ITCExperimentBase
 	with open( file, 'rb' ) as buf:
 		nitpic = pickle.load(buf)
 
+	# TODO: more sanity checks
 	assert len(nitpic['inj_vols']) == len(nitpic['NDH'])
-	# ITCExperiment(T, V0, injections, dQ, Cell, Syringe, skip=[], ddQ=[], Q_dil=0.0, cellRef=None, syringeRef=None, title=None, units='J')
+	
+	# get uncertainty in dh by scaling NDH interval (high and low, assuming +/- 1 SD) against NDH
+	DH, NDH = array(nitpic['dh']), array(nitpic['NDH'])
+	NDH_u, NDH_d = array(nitpic['NDHerrorsUp']), array(nitpic['NDHerrorsDown'])
 
 	kwargs = {
 		'skip' : [],
+		'dQ_err' : DH * ( (NDH_u+NDH_d)/(2.0*NDH) ),
 		'cellRef' : "M", 'syringeRef' : "X",
 		'units' : 'cal' ,
 		'title' : nitpic['inputFilename']}
@@ -118,9 +124,6 @@ def read_nitpic_exp( file, exp_args={}, recalc_concs=False ):
 		{'M':nitpic['CellConc']},
 		{'X':nitpic['SyrConc']},
 		**kwargs)
-
-	for i in xrange(experiment.npoints):
-		print experiment.Concentrations[i]['X']
 
 	if not recalc_concs: # do we overwrite the concentrations we calculated with those in the file?
 		for i in xrange(experiment.npoints):

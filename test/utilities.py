@@ -32,7 +32,7 @@ class TestITCConvertors(TestITCBase):
 
 	def test_read_nitpic(self):
 		E = read_nitpic_exp('./data/utilities_2.nitpkl')
-		self.assertEqual( round(sum(E.ddQ),1), 1703.1 )
+		self.assertEqual( round(sum(E.dQ_exp),1), -831.3 )
 
 if __name__ == '__main__':
 	unittest.main()
