@@ -10,8 +10,10 @@ except ImportError:
 
 from base import *
 from model import *
-from trap import *
+from utilities import *
 from drakon import *
 from mass_spec import *
+from trap import *
 
-unittest.main()
+if __name__ == '__main__':
+	unittest.main()

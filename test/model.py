@@ -15,8 +15,6 @@ from itcsimlib.model_ising import *
 from base import TestITCSIM
 
 class TestModel(TestITCSIM):
-	del TestITCSIM.test_run
-
 	def reset_simulation(self,cell="Lattice",syringe="Ligand"):
 		self.sim.remove_all_experiments()
 		self.sim.add_experiment_synthetic(

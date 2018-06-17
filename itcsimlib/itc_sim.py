@@ -1,3 +1,4 @@
+import os
 import copy
 import multiprocessing
 
@@ -259,15 +260,19 @@ class ITCSim:
 		ITCExperiment
 			The experiment created and added to the simulator.
 		"""
-		tmp,data = read_itcsimlib_exp(file)
-		
-		# overwrite any file-obtained info with explicit values
-		info = tmp.copy()
-		info.update(kwargs)
-		if len(data) == 2:
-			self.add_experiment( ITCExperiment(injections=data[0],dQ=data[1],units=self.units,**info) )
-		elif len(data) == 3:
-			self.add_experiment( ITCExperiment(injections=data[0],dQ=data[1],ddQ=data[2],units=self.units,**info) )
+
+		fname,ext = os.path.splitext(file)
+		if ext == ".itcpkl":
+			experiment = read_itcsimlib_pkl( file )
+		elif ext == ".nitpkl":
+			experiment = read_nitpic_exp( file, exp_args=kwargs )
+		else:
+			experiment = read_itcsimlib_exp( file, exp_args=kwargs )
+
+		if experiment != None:
+			experiment.units = self.units
+			self.add_experiment( experiment )
+
 		return self.experiments[-1]
 			
 	def remove_experiment( self, experiment ):

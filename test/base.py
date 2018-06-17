@@ -6,7 +6,6 @@ import sys
 import shutil
 import tempfile
 import uuid
-import pickle
 
 try:
 	from itcsimlib import *
@@ -33,27 +32,8 @@ class TestITCBase(unittest.TestCase):
 	def getFileContents(self,path):
 		with open(path, 'r') as content_file:
 			return content_file.read()
-		
-class TestITCUtilities(TestITCBase):
-	def test_rw_params_to_file(self):
-		params = {'n':1.80546,'dG':-10.9522,'dH':-12.4281,'dCp':0.0}
-		write_params_to_file( self.getFilePath(True), params )
-		self.assertEqual( params, read_params_from_file( self.getFilePath() ) )
-		
-	def test_read_experiment_file(self):
-		s = pickle.dumps( read_itcsimlib_exp('./data/base_1.txt'), 0 )
-		self.assertEqual( s, self.getFileContents("./data/base_1.test") )
-		
-	def test_savitsky_golay_filter(self):
-		data = pickle.load( open("./data/base_1.test") )
-		spl = savitzky_golay( data[1][1], window_size=7, order=1 )
-		self.assertEqual( round(sum(spl),2), -28.66 )
 
 class TestITCExperiment(TestITCBase):
-	def test_experiment_file(self):
-		from itcsimlib.itc_experiment import ITCExperiment
-		info,data = read_itcsimlib_exp('./data/base_1.txt')
-		self.assertIsNotNone( ITCExperiment(injections=data[0],dQ=data[1],**info) )
 
 	def test_synthetic_experiment(self):
 		from itcsimlib.itc_experiment import ITCExperimentSynthetic
@@ -68,22 +48,19 @@ class TestITCExperiment(TestITCBase):
 				
 	def test_experiment_export(self):
 		from itcsimlib.itc_experiment import ITCExperiment
-		info,data = read_itcsimlib_exp('./data/base_1.txt')
-		E = ITCExperiment(injections=data[0],dQ=data[1],**info)
+		E = read_itcsimlib_exp('./data/base_1.txt')
 		E.export_to_file( self.getFilePath(True) )
 		self.assertTrue( os.path.isfile(self.getFilePath()) )
 
 	def test_experiment_plot(self):
 		from itcsimlib.itc_experiment import ITCExperiment
-		info,data = read_itcsimlib_exp('./data/base_1.txt')
-		E = ITCExperiment(injections=data[0],dQ=data[1],**info)
+		E = read_itcsimlib_exp('./data/base_1.txt')
 		E.make_plot(hardcopy=True, hardcopydir=self.test_dir, hardcopytype="png")
 		self.assertTrue( os.path.isfile(os.path.join(self.test_dir,"base_1.png")) )
 		
 	def test_experiment_chisq(self):
 		from itcsimlib.itc_experiment import ITCExperiment
-		info,data = read_itcsimlib_exp('./data/base_1.txt')
-		E = ITCExperiment(injections=data[0],dQ=data[1],**info)
+		E = read_itcsimlib_exp('./data/base_1.txt')
 		Q = [0.0]*E.injections
 		self.assertEqual( round(E.get_chisq(Q),1), 679.8 )
 

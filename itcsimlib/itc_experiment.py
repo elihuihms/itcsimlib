@@ -34,8 +34,8 @@ class ITCExperimentBase:
 			The volume of the calorimeter's cell, in microliters.
 		injections : list of floats
 			The volumes injected at each titration point.
-		dQ : list of floats
-			The evolved heat at each injection
+		dQ : list of floats 
+			The evolved heat at each injection (in calories, unnormalized)
 		Cell : dict of floats
 			The starting concentration of the named components in the cell.
 		Syringe : dict of floats
@@ -112,7 +112,7 @@ class ITCExperimentBase:
 			if i == 0:
 				self.dQ_dil[i] = (1.0 -self.dDQ_conc[i]) * self.Q_dil
 			else:
-				self.dQ_dil[i] = (1.0 -self.dDQ_conc[i] -self.dDQ_conc[i-1]) * self.Q_dil 
+				self.dQ_dil[i] = (1.0 -self.dDQ_conc[i] -self.dDQ_conc[i-1]) * self.Q_dil
 
 		# convert raw data (in calories) to joules (note that this is not normalized per mol of injectant!)
 		assert len(dQ) == self.npoints
@@ -235,7 +235,11 @@ class ITCExperimentBase:
 		# For convention, normalize the heat evolved as per mol of injected reference ligand
 		tmpx = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in xrange(self.npoints) if i not in self.skip ]
 		tmpy = [ convert_from_J(self.units,self.dQ_exp[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in xrange(self.npoints) if i not in self.skip ]
-		tmpd = [ convert_from_J(self.units,self.ddQ[i]) for i in xrange(self.npoints) if i not in self.skip ]
+		
+		if self.ddQ == []:
+			tmpd = [ 0.0 for i in xrange(self.npoints) if i not in self.skip  ]
+		else:
+			tmpd = [ convert_from_J(self.units,self.ddQ[i]) for i in xrange(self.npoints) if i not in self.skip ]
 
 		pyplot.errorbar(tmpx,tmpy,yerr=tmpd,c='#000000',fmt='s')
 

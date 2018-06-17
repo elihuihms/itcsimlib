@@ -1,4 +1,5 @@
 import os
+import pickle
 
 try:
 	_tmp = OrderedDict()
@@ -53,24 +54,82 @@ def read_params_from_file( file, row=1, header=0 ):
 	head,data = Hline.split(),map(float,Dline.split())
 	return OrderedDict(zip(head,data))
 	
-def read_itcsimlib_exp( file, **kwargs ):
+def read_itcsimlib_exp( file, exp_args={} ):
 	from scipy import genfromtxt
+	from .itc_experiment import ITCExperiment
+
 	ignore = ("itcsim","Date","Ivol","units")
 	data,h = genfromtxt(file,unpack=True),open(file)
-	info = {'Cell':{},'Syringe':{}}
+	kwargs = {'Cell':{},'Syringe':{}}
 	for a in [l.split()[1:] for l in h.readlines() if l[0]=='#']:
 		if a == [] or a[0] in ignore:
 			continue
 		elif a[0] == 'Cell' or a[0] == 'Syringe':
-			info[a[0]][a[1]] = float(a[2])
+			kwargs[a[0]][a[1]] = float(a[2])
 		elif a[0].lower() == 'skip':
-			info['skip'] = map(int,a[1:])
+			kwargs['skip'] = map(int,a[1:])
 		else:
-			info[a[0]] = float(a[1])
+			kwargs[a[0]] = float(a[1])
 	h.close()
-	if not 'title' in info:
-		info['title'] = os.path.splitext(os.path.basename(file))[0]
-	return info,data
+	if not 'title' in kwargs:
+		kwargs['title'] = os.path.splitext(os.path.basename(file))[0]
+	
+	# overwrite any file-obtained info with explicit values
+	kwargs.update(exp_args)
+	if len(data) == 2:
+		return ITCExperiment(injections=data[0],dQ=data[1],**kwargs)
+	elif len(data) == 3:
+		return ITCExperiment(injections=data[0],dQ=data[1],ddQ=data[2],**kwargs)
+	else:
+		return None # TODO : parser errors
+
+def read_itcsimlib_pickle( path ):
+	with open(path, 'rb') as handle:
+		experiment =  pickle.load(handle)
+		del experiment._itcsimlib_version # TODO : version checking
+		return experiment
+
+def write_itcsimlib_pickle( path, experiment ):
+	from __init__ import __version__
+	experiment._itcsimlib_version = __version__
+	with open(path, 'wb') as handle:
+		return pickle.dump(experiment, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+def read_nitpic_exp( file, exp_args={}, recalc_concs=False ):
+	from .itc_experiment import ITCExperimentBase
+	with open( file, 'rb' ) as buf:
+		nitpic = pickle.load(buf)
+
+	assert len(nitpic['inj_vols']) == len(nitpic['NDH'])
+	# ITCExperiment(T, V0, injections, dQ, Cell, Syringe, skip=[], ddQ=[], Q_dil=0.0, cellRef=None, syringeRef=None, title=None, units='J')
+
+	kwargs = {
+		'skip' : [],
+		'cellRef' : "M", 'syringeRef' : "X",
+		'units' : 'cal' ,
+		'title' : nitpic['inputFilename']}
+
+	kwargs.update(exp_args)
+	experiment = ITCExperimentBase(
+		nitpic['experimental_temp'],
+		nitpic['cell_V'],
+		nitpic['inj_vols'],
+		nitpic['dh'],
+		{'M':nitpic['CellConc']},
+		{'X':nitpic['SyrConc']},
+		**kwargs)
+
+	for i in xrange(experiment.npoints):
+		print experiment.Concentrations[i]['X']
+
+	if not recalc_concs: # do we overwrite the concentrations we calculated with those in the file?
+		for i in xrange(experiment.npoints):
+			experiment.Concentrations[i]['M'] = nitpic['Mt'][i]
+			experiment.Concentrations[i]['X'] = nitpic['Xt'][i]
+
+	experiment.initialized = True
+
+	return experiment
 	
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
 	# from http://stackoverflow.com/questions/22988882/how-to-smooth-a-curve-in-python
