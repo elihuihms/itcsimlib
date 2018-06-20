@@ -75,6 +75,10 @@ class MSExperiment(ITCExperimentBase):
 		with open(path) as fh:
 			for i, line in enumerate(fh):
 
+				# convert "#@" to "@"
+				if line[0] in ["#"] and line[1] in ["@"]:
+					line = line[1:]
+
 				# ignore empty and comment lines
 				if line.strip() == "":
 					continue

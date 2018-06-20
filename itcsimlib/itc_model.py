@@ -28,14 +28,15 @@ class ITCModel():
 
 	"""
 	
-	def __init__(self):
+	def __init__(self, units="J"):
 		"""The constructor for the base ITCModel class. Child class constructors should call this parent constructor first and then probably do something else with an argument or two.
 		
 		Arguments
 		---------
 		None
 		""" 
-		self.units = "J"
+		self.units = units
+		
 		self.params = OrderedDict()
 		self.components = []
 		self._param_meta = {}
