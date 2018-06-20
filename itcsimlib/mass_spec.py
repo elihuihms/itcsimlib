@@ -122,8 +122,8 @@ class MSExperiment(ITCExperimentBase):
 
 				data.extend([f/sum(tmp[2:]) for f in tmp[2:]]) # append the normalized abundances at each titration point
 				self.Concentrations.append({})
-				self.Concentrations[-1]["Lattice"]	= tmp[0] / 1.0E6
-				self.Concentrations[-1]["Ligand"]	= tmp[1] / 1.0E6
+				self.Concentrations[-1]["Lattice"]	= tmp[0]
+				self.Concentrations[-1]["Ligand"]	= tmp[1]
 
 				self.npoints += 1
 
@@ -228,16 +228,16 @@ class MSExperiment(ITCExperimentBase):
 		fh.write("# %s"%self.title)
 		fh.write("# Experimental data\n")
 		for i in xrange(self.npoints):
-			fh.write("%f\t%f\t%s\n" % (
-				self.Concentrations[i]['Lattice']*1E6,
-				self.Concentrations[i]['Ligand']*1E6,
+			fh.write("%0.3E\t%0.3E\t%s\n" % (
+				self.Concentrations[i]['Lattice'],
+				self.Concentrations[i]['Ligand'],
 				"\t".join(["%f"%f for f in self.PopIntens[i]])))
 
 		fh.write("# Fitted data\n")
 		for i in xrange(self.npoints):
-			fh.write("%f\t%f\t%s\n" % (
-				self.Concentrations[i]['Lattice']*1E6,
-				self.Concentrations[i]['Ligand']*1E6,
+			fh.write("%0.3E\t%0.3E\t%s\n" % (
+				self.Concentrations[i]['Lattice'],
+				self.Concentrations[i]['Ligand'],
 				"\t".join(["%f"%f for f in self.PopFits[i]])))
 
 		fh.close()
