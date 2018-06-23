@@ -42,7 +42,7 @@ class Ising(ITCModel):
 		The symbolic expression of the configuration's free energy.
 	"""
 		
-	def __init__(self,nsites=3,circular=True):
+	def __init__(self,nsites=3,circular=True,*args,**kwargs):
 		"""The constructor for the base Ising binding model.
 		
 		Arguments
@@ -52,7 +52,7 @@ class Ising(ITCModel):
 		circular : boolean
 			Is the lattice circular?
 		"""
-		ITCModel.__init__(self)
+		ITCModel.__init__(self,*args,**kwargs)
 		
 		self.nsites,self.circular = nsites,circular
 		
@@ -249,8 +249,8 @@ class Ising(ITCModel):
 class FullAdditive(Ising):
 	"""An Ising-type model, in which ligands bind to either a linear or circular lattice. Coupling can occur to both unoccupied and occupied lattice points."""
 
-	def __init__(self,nsites=3,circular=1):
-		Ising.__init__(self,nsites,circular)
+	def __init__(self,nsites=3,circular=1,*args,**kwargs):
+		Ising.__init__(self,nsites,circular,*args,**kwargs)
 		
 		self.add_parameter( 'dG0',	'dG',	description='Intrinsic free energy change upon binding to a site.' )
 		self.add_parameter( 'dGa',	'dG',	description='Additional free energy change upon binding to a site flanked by an unoccupied site' )
@@ -303,8 +303,8 @@ class FullAdditive(Ising):
 class HalfAdditive(Ising):
 	"""An Ising-type model, in which ligands bind to either a linear or circular lattice. Coupling only occurs between occupied lattice points."""
 
-	def __init__(self,nsites=3,circular=1):
-		Ising.__init__(self,nsites,circular)
+	def __init__(self,nsites=3,circular=1,*args,**kwargs):
+		Ising.__init__(self,nsites,circular,*args,**kwargs)
 		
 		self.add_parameter( 'dG0',	'dG',	description='Intrinsic free energy change upon binding to a site.' )
 		self.add_parameter( 'dGb',	'dG',	description='Additional free energy change upon binding to a site flanked by an occupied site' )
@@ -339,8 +339,8 @@ class HalfAdditive(Ising):
 class NonAdditive(Ising):
 	"""An Ising-type model, in which ligands bind to either a linear or circular lattice. Binding energy depends upon whether zero, one, or both neighboring sites are occupied."""
 
-	def __init__(self,nsites=3,circular=1):
-		Ising.__init__(self,nsites,circular)
+	def __init__(self,nsites=3,circular=1,*args,**kwargs):
+		Ising.__init__(self,nsites,circular,*args,**kwargs)
 		
 		self.add_parameter( 'dGX',	'dG',	description='Free energy change upon binding to a site flanked by two unoccupied' )
 		self.add_parameter( 'dGY',	'dG',	description='Free energy change upon binding to a site flanked by one occupied' )
