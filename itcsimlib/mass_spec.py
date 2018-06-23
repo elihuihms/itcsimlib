@@ -125,13 +125,37 @@ class MSExperiment(ITCExperimentBase):
 				self.Concentrations[-1]["Lattice"]	= tmp[0] / 1.0E6
 				self.Concentrations[-1]["Ligand"]	= tmp[1] / 1.0E6
 
-				self.npoints += 1
+				self.npoints += self.npops
 
-		self.PopIntens	= np.array(data).reshape((self.npoints,self.npops))
+		self.PopIntens	= np.array(data).reshape((self.npoints/self.npops,self.npops))
 		self.PopSigmas	= np.full(self.PopIntens.shape,self.sigma**2)
 		self.PopFits	= np.zeros(self.PopIntens.shape)
 
 		self.chisq = None
+
+	def __str__(self):
+		"""Stringify the experiment to be suitable for display to the user
+		
+		Parameters
+		----------
+		None
+		
+		Returns
+		-------
+		string
+			String containing the description and other experimental info.
+		"""
+		
+		ret = "Title: %s\n"%(self.title)
+		if (self.chisq != None):
+			ret+= "Chisq: %f\n"%(self.chisq)
+		ret+= "Temperature: %0.2f K\n"%(self.T)
+		ret+= "Stoichiometries: %i\n"%(self.npoints/self.npops)
+		ret+= "Populations: %i\n"%(self.npops)
+		ret+= "Components:\n"
+		ret+= "\tLattice: \"%s\"\n"%(self.Lattice)
+		ret+= "\tLigand: \"%s\"\n"%(self.Ligand)
+		return ret
 	
 	def make_plot(self,hardcopy=False,hardcopydir='.',hardcopyprefix='', hardcopytype='png'):
 		"""Generate a stacked plot of the experimental populations, the fitted populations, and the residuals between the two.
@@ -286,6 +310,8 @@ class MSModel(Ising):
 		# copy all of the (initialized) parent model attributes
 		self.__dict__ = model.__dict__.copy()
 		self.model = model
+
+		self.__doc__ = "A model adapted from base type \"%s.%s\" for fitting mass spectrometric population data.\n\nOriginal docstring:\n%s"%(self.model.__module__,self.model.__class__.__name__,self.model.__doc__) 
 
 	def set_energies(self,T0,T):
 		"""Update the parent model parameters with whatever we currently have, and set the parent model config energies"""

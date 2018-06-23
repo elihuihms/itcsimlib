@@ -11,13 +11,18 @@ from itcsimlib.mass_spec import MSExperiment, MSModel
 itc_model = NonAdditive(nsites=11,circular=1)
 
 ms_model = MSModel(itc_model)
+print ms_model
+
 ms_model.set_params(dGX=-27000,dGY=-27000,dGZ=-30000)
 
 sim = ITCSim(verbose=True, threads=1)
 
 sim.set_model(ms_model)
 
-sim.add_experiment( MSExperiment('data/TRAP_populations_EDDA.txt') )
+exp = MSExperiment('data/TRAP_populations_EDDA.txt')
+print exp
+
+sim.add_experiment( exp )
 
 sim.run()
 

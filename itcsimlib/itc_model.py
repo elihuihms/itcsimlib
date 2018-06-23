@@ -307,7 +307,7 @@ class ITCModel():
 		
 		types = {'n':"Stoichiometry",'k':"Rate constant",'dG':"Free energy",'dH':"Enthalpy",'dS':"Entropy",'dCp':"Heat capacity"}
 		units = {'n':"sites",'k':"1/s or 1/s/mol",'dG':"%s/mol"%self.units,'dH':"%s/mol"%self.units,'dS':"%s/mol/K"%self.units,'dCp':"%s/mol/K"%self.units}
-		ret = "\nITCModel \"%s\"\nDescription:\n%s\n"%(self.__module__, self.__doc__)
+		ret = "\nModel: %s.%s\n\nDescription:\n%s\n"%(self.__module__,self.__class__.__name__, self.__doc__)
 		ret+= "\nComponents:\n"
 		ret+= "Index	Name	Description\n"
 		for i,c in enumerate(self.components):

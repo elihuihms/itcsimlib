@@ -146,7 +146,7 @@ class ITCExperimentBase:
 		ret = "Title: %s\n"%(self.title)
 		if (self.chisq != None):
 			ret+= "Chisq: %f\n"%(self.chisq)
-		ret+= "Temperature: %fK\n"%(self.T)
+		ret+= "Temperature: %0.2f K\n"%(self.T)
 		ret+= "%i Injections (%i skipped)\n"%(self.npoints,len(self.skip))
 		ret+= "Dilution enthalpy: %.3E\n"%(self.Q_dil)
 		ret+= "Cell components:\n"
