@@ -200,18 +200,20 @@ class MSExperiment(ITCExperimentBase):
 		ax2 = pyplot.subplot(3,1,2)
 		ax3 = pyplot.subplot(3,1,3)
 
+		x_points = self.npoints/self.npops
+
 		xax_positions,xax_labels = [],[]
 		width,space,left = 0.25,0.5,0.0
 		for i in xrange(self.npops):
-			bars1 = ax1.bar( [left + (j*width) for j in xrange(self.npoints)], [self.PopIntens[j][i] for j in xrange(self.npoints)], width=width, edgecolor='r' )
-			bars2 = ax2.bar( [left + (j*width) for j in xrange(self.npoints)], [self.PopFits[j][i] for j in xrange(self.npoints)], width=width, edgecolor='r' )
-			bars3 = ax3.bar( [left + (j*width) for j in xrange(self.npoints)], [self.PopIntens[j][i] - self.PopFits[j][i] for j in xrange(self.npoints)], width=width, edgecolor='r' )
-			xax_positions.append( left + (self.npoints*width)/2.0 )
+			bars1 = ax1.bar( [left + (j*width) for j in xrange(x_points)], [self.PopIntens[j][i] for j in xrange(x_points)], width=width, edgecolor='r' )
+			bars2 = ax2.bar( [left + (j*width) for j in xrange(x_points)], [self.PopFits[j][i] for j in xrange(x_points)], width=width, edgecolor='r' )
+			bars3 = ax3.bar( [left + (j*width) for j in xrange(x_points)], [self.PopIntens[j][i] - self.PopFits[j][i] for j in xrange(x_points)], width=width, edgecolor='r' )
+			xax_positions.append( left + (x_points*width)/2.0 )
 			xax_labels.append("%i"%i)
 			left += (j*width)+space
 	
-			for j in xrange(self.npoints):
-				color = 1.0 - (float(j) / self.npoints)
+			for j in xrange(x_points):
+				color = 1.0 - (float(j) / x_points)
 				bars1[j].set_color( (color, color, 1) )	
 				bars2[j].set_color( (color, 1, color) )	
 				bars3[j].set_color( (1, color, color) )
@@ -343,7 +345,7 @@ class MSModel(Ising):
 
 		# set the energies of this model's configs from the base model
 		self.set_energies(T0,T)
-
+		
 		ret = np.zeros((len(concentrations),self.model.nsites+1))
 		for i,c in enumerate(concentrations):
 			
