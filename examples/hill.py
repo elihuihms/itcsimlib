@@ -15,7 +15,7 @@ class Hill_Printer_Model(NonAdditive):
 		self.set_energies(T0,T)
 		
 		fh = open("hill_%i.txt"%T,'a')
-
+		fh.write("#	TotalLattice	TotalLigand 	FreeLigand	Saturation\n")
 		Q = [0.0]*len(concentrations)
 		for i,c in enumerate(concentrations):
 			# set the weights (probabilities) of each lattice configuration
@@ -26,7 +26,7 @@ class Hill_Printer_Model(NonAdditive):
 			for j in xrange(self.nconfigs):
 				theta += self.bound[j] * self.weights[j]
 				
-			fh.write("%i	%0.5E	%f\n"%(i,freeL,theta))
+			fh.write("%i	%0.5E	%0.5E	%0.5E	%f\n"%(i,c['Lattice'],c['Ligand'],freeL,theta))
 			
 			# enthalpy is sum of all weighted enthalpies of the lattices
 			Q[i] = sum( [self.weights[j] * self.enthalpies[j] for j in xrange(self.nconfigs)] )
@@ -39,15 +39,14 @@ model = Hill_Printer_Model(nsites=11,circular=1)
 sim = ITCSim(T0=273.15+40,verbose=True,threads=1)
 
 injection_vols = [0.1]*100
-injection_vols.extend( [1.0]*200 )
-injection_vols.extend( [10]*10 )
+injection_vols.extend( [1.0]*100 )
 
 sim.add_experiment_synthetic(
 	T=273.15+40,
 	V0=1416.6,
 	injections=injection_vols,
 	Cell={"Lattice":1E-6},
-	Syringe={"Ligand":100E-6},
+	Syringe={"Ligand":200E-6},
 	noise=1.0,
 	title='simulated')
 
