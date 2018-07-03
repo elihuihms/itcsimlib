@@ -1,5 +1,4 @@
 import sys
-import math
 import scipy
 import scipy.optimize
 
@@ -129,7 +128,7 @@ class Ising(ITCModel):
 			# Return the deviation between predicted and actual free ligand concentration
 			
 			# set the probability of each configuration at the free ligand concentration
-			self.weights = [math.exp( (-1.0 * self.gibbs[i]) / ( _R * T ) ) * freeL**self.bound[i] for i in xrange(self.nconfigs) ]
+			self.weights = [scipy.exp( (-1.0 * self.gibbs[i]) / ( _R * T ) ) * freeL**self.bound[i] for i in xrange(self.nconfigs) ]
 			total = sum(self.weights)
 			self.weights = [ self.weights[i] / total for i in xrange(self.nconfigs) ]
 			
@@ -178,7 +177,7 @@ class Ising(ITCModel):
 
 		return Q
 			
-	def get_partition_function(self,substitute_Ks=True,full_simplify=True):
+	def get_partition_function(self, substitute_Ks=True, full_simplify=True):
 		"""Return the partition function of the binding model as a sympy expression.
 		
 		Arguments
@@ -226,7 +225,7 @@ class Ising(ITCModel):
 		
 		return ret
 
-	def draw_lattices(self, file, size=1.0, show_energies=True):
+	def draw_lattices(self, file, size=1.0, dG_format="%0.1f"):
 		"""Draw a PDF depicting the energetically-unique configurations of the model, with annotations.
 		
 		Arguments
@@ -235,6 +234,8 @@ class Ising(ITCModel):
 			The path at which to save the file.
 		size : float
 			The radius (for circular lattices) or width (for linear lattices), in cm of the depictions.
+		dG_format : string
+			The formatting string to use when comparing and printing configuration free energies.
 		
 		Returns
 		-------
@@ -266,37 +267,31 @@ class Ising(ITCModel):
 					c.fill(path.circle(x,y+(i*w)-(sy/2.0)+(w/2.0),w*0.3), [color.rgb.blue])
 				c.stroke(path.circle(x,y+(i*w)-(sy/2.0)+(w/2.0),w*0.4), [style.linewidth.Thick])
 				
-			if show_energies and energy != None:
-				texrun = text.defaulttexrunner
-				t = texrun.text(x+(w*0.6),y+(0.4*sy), r"%s"%str(energy), [text.halign.boxleft, text.valign.middle] )
-				if unit.tocm(t.width) < 2.0*w:
-					c.insert(t)
+			texrun = text.defaulttexrunner
+			c.insert(texrun.text(x+(w*0.6),y+(0.4*sy), r"%s"%str(energy), [text.halign.boxleft, text.valign.middle] ))
 
 			if degeneracy != None:
 				t = c.text(x+(w*0.6),y-(0.4*sy), r"x%s"%str(degeneracy), [text.halign.boxleft, text.valign.top])
 
 		def _draw_circular_lattice(self,loc,r,n,key=None,energy=None,degeneracy=None):
 			x,y = loc
-			chord = 2.0*r*math.sin(math.pi/n)
-			site_r = (r-(chord/2.0))*math.sin(math.pi/n)
-			outer_r = site_r / math.sin(math.pi/n) + site_r
-			inner_r = site_r / math.sin(math.pi/n) - site_r
+			chord = 2.0*r*scipy.sin(scipy.pi/n)
+			site_r = (r-(chord/2.0))*scipy.sin(scipy.pi/n)
+			outer_r = site_r / scipy.sin(scipy.pi/n) + site_r
+			inner_r = site_r / scipy.sin(scipy.pi/n) - site_r
 
 			c.stroke(path.circle(x,y,outer_r), [style.linewidth.Thick])
 			c.stroke(path.circle(x,y,inner_r), [style.linewidth.Thick])
 
-			if show_energies and energy != None:
-				texrun = text.defaulttexrunner
-				t = texrun.text(x, y, r"%s"%str(energy), [text.halign.boxcenter, text.valign.middle] )
-				if unit.tocm(t.width) < 2.0*inner_r:
-					c.insert(t)
+			texrun = text.defaulttexrunner
+			c.insert(texrun.text(x, y, r"%s"%str(energy), [text.halign.boxcenter, text.valign.middle] ))
 			
 			if degeneracy != None:
 				t = c.text(x+(r*0.68),y-(r*0.68), r"x%s"%str(degeneracy), [text.halign.boxleft, text.valign.top])
 
 			for i in xrange(0,n):
-				circ_x = x+(math.cos(2.0*math.pi/n*i)*(r-(0.5*chord)))
-				circ_y = y+(math.sin(2.0*math.pi/n*i)*(r-(0.5*chord)))
+				circ_x = x+(scipy.cos(2.0*scipy.pi/n*i)*(r-(0.5*chord)))
+				circ_y = y+(scipy.sin(2.0*scipy.pi/n*i)*(r-(0.5*chord)))
 				if key[i] > 0:
 					c.fill(path.circle(circ_x,circ_y,site_r*0.6), [color.rgb.blue])
 				c.stroke(path.circle(circ_x,circ_y,site_r*0.8), [style.linewidth.Thick])
@@ -305,20 +300,21 @@ class Ising(ITCModel):
 			configurations = {} # keyed by energy, (key,weight)
 			for j in xrange(self.nconfigs):
 				if self.bound[j] == i:
-					if self.gibbs[j] in configurations.keys():
-						configurations[ self.gibbs[j] ][1]+=1
+					energy = dG_format%convert_from_J(self.units,self.gibbs[j])
+					if energy in configurations.keys():
+						configurations[energy][1]+=1
 					else:
-						configurations[ self.gibbs[j] ] = [self.configs[j],1]
+						configurations[energy]=[self.configs[j],1]
 			
 			for j,energy in enumerate(sorted(configurations.keys())):
 				if self.circular:
 					_draw_circular_lattice(c,
 						(2.2*size*j,0-2.2*size*i),size,self.nsites,
-						key=configurations[energy][0],energy="%.1f"%(convert_from_J(self.units,energy)),degeneracy=configurations[energy][1])
+						key=configurations[energy][0],energy=energy,degeneracy=configurations[energy][1])
 				else:
 					_draw_linear_lattice(c,
 						(2.2*size*j,0-1.1*size*i*self.nsites),size,self.nsites,
-						key=configurations[energy][0],energy="%.1f"%(convert_from_J(self.units,energy)),degeneracy=configurations[energy][1])
+						key=configurations[energy][0],energy=energy,degeneracy=configurations[energy][1])
 					
 		c.writePDFfile(file)
 
