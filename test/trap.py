@@ -14,8 +14,16 @@ from itcsimlib.model_trap import *
 
 from model import TestModel
 
+def compiled_model_exists(modellib):
+	path = os.path.abspath(__file__) # ../itcsimlib/test/trap.py
+	path = os.path.dirname(os.path.dirname(path)) # ../itcsimlib/
+	path = os.path.join(path,"itcsimlib") # ../itcsimlib/itcsimlib/
+	return os.path.exists( os.path.join(path,modellib) )
+
 class TestTRAPModels(TestModel):
 	def test_SK_model(self):
+		if not compiled_model_exists("model_trap_sk.so"):
+			return
 		self.reset_simulation(cell="TRAP",syringe="Trp")
 		self.sim.set_model( SK() )
 		self.sim.set_model_params(
@@ -30,6 +38,8 @@ class TestTRAPModels(TestModel):
 		self.assertTrue( self.sim.run() > 1.0 )
 	
 	def test_SKa_model(self):
+		if not compiled_model_exists("model_trap_ik.so"):
+			return
 		self.reset_simulation(cell="TRAP",syringe="Trp")
 		self.sim.set_model( SKa() )
 		self.sim.set_model_params(
@@ -44,6 +54,8 @@ class TestTRAPModels(TestModel):
 		self.assertTrue( self.sim.run() > 1.0 )
 	
 	def test_IK_model(self):
+		if not compiled_model_exists("model_trap_ik.so"):
+			return
 		self.reset_simulation(cell="TRAP",syringe="Trp")
 		self.sim.set_model( IK() )
 		self.sim.set_model_params(
@@ -58,6 +70,8 @@ class TestTRAPModels(TestModel):
 		self.assertTrue( self.sim.run() > 1.0 )
 		
 	def test_IKi_model(self):
+		if not compiled_model_exists("model_trap_sk.so"):
+			return
 		self.reset_simulation(cell="TRAP",syringe="Trp")
 		self.sim.set_model( IKi() )
 		self.sim.set_model_params(

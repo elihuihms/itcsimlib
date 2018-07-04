@@ -14,6 +14,11 @@ except ImportError:
 	from itcsimlib import *
 from itcsimlib.utilities import *
 
+def get_test_data(filename):
+	path = os.path.dirname(os.path.abspath(__file__)) # ../itcsimlib/test
+	path = os.path.join(path,"data") # ../itcsimlib/test/data
+	return os.path.join(path,filename)
+
 class TestITCBase(unittest.TestCase):
 	def setUp(self):
 		self.test_dir = tempfile.mkdtemp()
@@ -48,19 +53,19 @@ class TestITCExperiment(TestITCBase):
 				
 	def test_experiment_export(self):
 		from itcsimlib.itc_experiment import ITCExperiment
-		E = read_itcsimlib_exp('./data/base_1.txt')
+		E = read_itcsimlib_exp(get_test_data('base_1.txt'))
 		E.export_to_file( self.getFilePath(True) )
 		self.assertTrue( os.path.isfile(self.getFilePath()) )
 
 	def test_experiment_plot(self):
 		from itcsimlib.itc_experiment import ITCExperiment
-		E = read_itcsimlib_exp('./data/base_1.txt')
+		E = read_itcsimlib_exp(get_test_data('base_1.txt'))
 		E.make_plot(hardcopy=True, hardcopydir=self.test_dir, hardcopytype="png")
 		self.assertTrue( os.path.isfile(os.path.join(self.test_dir,"base_1.png")) )
 		
 	def test_experiment_chisq(self):
 		from itcsimlib.itc_experiment import ITCExperiment
-		E = read_itcsimlib_exp('./data/base_1.txt')
+		E = read_itcsimlib_exp(get_test_data('base_1.txt'))
 		Q = [0.0]*E.injections
 		self.assertEqual( round(E.get_chisq(Q),1), 679.8 )
 
@@ -127,8 +132,8 @@ class TestITCFit(TestITCSIM):
 		TestITCSIM.setUp(self)
 		from itcsimlib.model_independent import OneMode
 
-		self.sim.add_experiment_file('./data/base_1.txt')
-		self.sim.add_experiment_file('./data/base_2.txt')
+		self.sim.add_experiment_file(get_test_data('base_1.txt'))
+		self.sim.add_experiment_file(get_test_data('base_2.txt'))
 		self.sim.set_model( OneMode() )
 		self.sim.set_model_params(n=1.80546,dG=-10.9522,dH=-12.4281,dCp=0.0)
 	
@@ -165,7 +170,7 @@ class TestITCGrid(TestITCSIM):
 		TestITCSIM.setUp(self)
 		from itcsimlib.model_independent import OneMode
 
-		self.sim.add_experiment_file('./data/base_1.txt')
+		self.sim.add_experiment_file(get_test_data('base_1.txt'))
 		self.sim.set_model( OneMode() )
 		self.sim.set_model_params(n=1.805,dG=-10.94,dH=-11.75,dCp=0.0)		
 		self.fit = ITCFit( self.sim, method='simplex', method_args={"maxiter":1} )

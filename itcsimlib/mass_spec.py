@@ -1,6 +1,7 @@
 import os
 import sys
-import numpy as np
+import scipy
+import uuid
 
 from itc_experiment import ITCExperimentBase
 from model_ising import Ising
@@ -8,7 +9,7 @@ from model_ising import Ising
 _MATPLOTLIB_BACKEND = None #None for default
 
 class MSExperiment(ITCExperimentBase):
-	"""A class that encapsulates a specific mass spec epxeriment, i.e. weights of different stoichiometry populations
+	"""A class that represents a specific mass spec experiment, i.e. weights of different stoichiometry populations
 
 	Attributes
 	----------
@@ -33,7 +34,7 @@ class MSExperiment(ITCExperimentBase):
 	-----
 		This class abuses several of the usual ITCExperimentBase attributes in a rather dirty fashion - it won't as a simple replacement for many itcsimlib routines, but basic fitting should be OK
 	"""
-		
+
 	def __init__(self, path, T=298.15, sigma=0.05, title=None):
 		"""Constructor for the MSExperiment object.
 
@@ -60,7 +61,7 @@ class MSExperiment(ITCExperimentBase):
 		else:
 			self.title = os.path.splitext(os.path.basename(self.path))[0]
 
-		# patches to play nice with the ITCExperimentBase base class constructor
+		# patches to play nice with the ITCExperimentBase base class constructor.
 		V0,injections,dQ = 1.0,[1.0],[1.0]
 		Cell,Syringe = {"Lattice":1.0},{"Ligand":1.0}
 
@@ -131,9 +132,9 @@ class MSExperiment(ITCExperimentBase):
 
 				self.npoints += self.npops
 
-		self.PopIntens	= np.array(data).reshape((self.npoints/self.npops,self.npops))
-		self.PopSigmas	= np.full(self.PopIntens.shape,self.sigma**2)
-		self.PopFits	= np.zeros(self.PopIntens.shape)
+		self.PopIntens	= scipy.array(data).reshape((self.npoints/self.npops,self.npops))
+		self.PopSigmas	= scipy.full(self.PopIntens.shape,self.sigma**2)
+		self.PopFits	= scipy.zeros(self.PopIntens.shape)
 
 		self.chisq = None
 
@@ -152,10 +153,10 @@ class MSExperiment(ITCExperimentBase):
 		
 		ret = "Title: %s\n"%(self.title)
 		if (self.chisq != None):
-			ret+= "Chisq: %f\n"%(self.chisq)
+			ret+= "Current chisq: %f\n"%(self.chisq)
 		ret+= "Temperature: %0.2f K\n"%(self.T)
-		ret+= "Stoichiometries: %i\n"%(self.npoints/self.npops)
-		ret+= "Populations: %i\n"%(self.npops)
+		ret+= "Titration points: %i\n"%(self.npoints/self.npops)
+		ret+= "Stoichiometries: %i\n"%(self.npops)
 		ret+= "Components:\n"
 		ret+= "\tLattice: \"%s\"\n"%(self.Lattice)
 		ret+= "\tLigand: \"%s\"\n"%(self.Ligand)
@@ -210,7 +211,7 @@ class MSExperiment(ITCExperimentBase):
 			bars3 = ax3.bar( [left + (j*width) for j in xrange(x_points)], [self.PopIntens[j][i] - self.PopFits[j][i] for j in xrange(x_points)], width=width, edgecolor='r' )
 			xax_positions.append( left + (x_points*width)/2.0 )
 			xax_labels.append("%i"%i)
-			left += (j*width)+space
+			left += (x_points*width)+space
 	
 			for j in xrange(x_points):
 				color = 1.0 - (float(j) / x_points)
@@ -235,8 +236,7 @@ class MSExperiment(ITCExperimentBase):
 		pyplot.draw()
 
 		if hardcopy:
-			tmp = os.path.splitext(os.path.basename(self.path))[0]
-			fig.savefig( os.path.join(hardcopydir,"%s%s.%s"%(hardcopyprefix,tmp,hardcopytype)), bbox_inches='tight')
+			fig.savefig( os.path.join(hardcopydir,"%s%s.%s"%(hardcopyprefix,self.title,hardcopytype)), bbox_inches='tight')
 			pyplot.close(fig)
 		else:
 			pyplot.show()
@@ -257,14 +257,14 @@ class MSExperiment(ITCExperimentBase):
 		
 		fh.write("# %s"%self.title)
 		fh.write("# Experimental data\n")
-		for i in xrange(self.npoints):
+		for i in xrange(self.npoints/self.npops):
 			fh.write("%0.3E\t%0.3E\t%s\n" % (
 				self.Concentrations[i]['Lattice'],
 				self.Concentrations[i]['Ligand'],
 				"\t".join(["%f"%f for f in self.PopIntens[i]])))
 
 		fh.write("# Fitted data\n")
-		for i in xrange(self.npoints):
+		for i in xrange(self.npoints/self.npops):
 			fh.write("%0.3E\t%0.3E\t%s\n" % (
 				self.Concentrations[i]['Lattice'],
 				self.Concentrations[i]['Ligand'],
@@ -295,12 +295,73 @@ class MSExperiment(ITCExperimentBase):
 
 		assert self.PopIntens.shape == pops.shape
 
-		self.chisq = np.sum(np.square(self.PopIntens - pops) / self.PopSigmas) / self.PopIntens.size
+		self.chisq = scipy.sum(scipy.square(self.PopIntens - pops) / self.PopSigmas) / self.PopIntens.size
 
 		if writeback:
 			self.PopFits = pops		
 
 		return self.chisq
+
+class MSExperimentSynthetic(MSExperiment):
+	"""A MSExperiment-derived class that can be used to simulate a mass spec experiment"""
+		
+	def __init__(self, lattice_concs, ligand_concs, T=298.15, noise=0.02, title=None):
+		"""Constructor for the MSExperimentSynthetic object.
+
+		Arguments
+		---------
+		lattice_concentrations : list of floats
+			Concentrations of the lattice component (in M)
+		lattice_concentrations : list of floats
+			Concentrations of the ligand component (in M)
+		T : float
+			The temperature of the experiment to simulate.
+		noise : string
+			The magnitude of noise to add to the simulated data.
+		title :
+			The title to assign to the experiment
+		"""
+
+		assert len(lattice_concs) == len(ligand_concs)
+
+		self.sigma = noise
+		if title is not None:
+			self.title = title
+		else:
+			self.title = uuid.uuid4()
+
+		# patches to play nice with the ITCExperimentBase base class constructor. Do we even need this?
+		V0,injections,dQ = 1.0,[1.0],[1.0]
+		Cell,Syringe = {"Lattice":1.0},{"Ligand":1.0}
+		self.path = None
+
+		ITCExperimentBase.__init__(self, T, V0, injections, dQ, Cell, Syringe, title=self.title)
+
+		# reset key attributes now
+		self.Lattice, self.Ligand = "Lattice", "Ligand"
+		self.Concentrations = [{self.Lattice:lattice_concs[i],self.Ligand:ligand_concs[i]} for i in xrange(len(lattice_concs))]
+
+		self.initialized = False
+		self.chisq = None
+
+	def __str__(self):
+		if not self.initialized:
+			return "Synthetic experiment has not yet been generated - attach to a simulator and run to populate"
+		return MSExperiment.__str__(self)
+
+	def get_chisq(self, pops, writeback=False):
+		"""Extends the base MSExperiment class to overwrite the PopFits attribute on the first call"""
+
+		if not self.initialized:
+			self.PopIntens = scipy.absolute(scipy.random.normal(pops,self.sigma))
+			self.PopSigmas = scipy.full(self.PopIntens.shape,self.sigma**2)
+			self.PopFits = scipy.zeros(self.PopIntens.shape)
+			self.npoints, self.npops = self.PopIntens.shape
+			self.npoints = self.npoints*self.npops
+			self.initialized = True
+
+		return MSExperiment.get_chisq(self, pops, writeback)
+
 
 class MSModel(Ising):
 	"""
@@ -346,7 +407,7 @@ class MSModel(Ising):
 		# set the energies of this model's configs from the base model
 		self.set_energies(T0,T)
 		
-		ret = np.zeros((len(concentrations),self.model.nsites+1))
+		ret = scipy.zeros((len(concentrations),self.model.nsites+1))
 		for i,c in enumerate(concentrations):
 			
 			# set the probabilities (weights) for all configurations
