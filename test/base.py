@@ -72,11 +72,13 @@ class TestITCExperiment(TestITCBase):
 class TestITCSIM(TestITCBase):
 	def setUp(self):
 		TestITCBase.setUp(self)
-		self.sim = ITCSim(T0=298.15,units="kcal",verbose=True)
+		self.sim = ITCSim(T0=298.15,units="kcal",verbose=True,threads=1)
 		
 	def tearDown(self):
 		TestITCBase.tearDown(self)
 		self.sim.done()
+
+class TestSIMThreading(TestITCSIM):
 
 	def test_run_singlethread(self):
 		from itcsimlib.model_independent import OneMode
@@ -101,7 +103,7 @@ class TestITCSIM(TestITCBase):
 	def test_run_multithread(self):
 		from itcsimlib.model_independent import OneMode
 
-		multi = ITCSim(T0=298.15,units="kcal",verbose=True,threads=None)
+		multi = ITCSim(T0=298.15,units="kcal",verbose=True,threads=2)
 		multi.add_experiment_synthetic(
 				T=298.15,
 				V0=1416.6,

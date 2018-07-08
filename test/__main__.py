@@ -12,7 +12,7 @@ from base import *
 from model import *
 from utilities import *
 from drakon import *
-from mass_spec import *
+from massspec import *
 from trap import *
 
 if __name__ == '__main__':

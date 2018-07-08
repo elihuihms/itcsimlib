@@ -7,6 +7,8 @@ from itc_experiment import ITCExperimentBase
 from model_ising import Ising
 
 _MATPLOTLIB_BACKEND = None #None for default
+_FILE_COMMENT = ["#"]
+_FILE_KEYPAIR = ["@"]
 
 class MSExperiment(ITCExperimentBase):
 	"""A class that represents a specific mass spec experiment, i.e. weights of different stoichiometry populations
@@ -45,73 +47,66 @@ class MSExperiment(ITCExperimentBase):
 		T : float
 			An uncertainty in the measured population state abundances (default is 5%).
 		sigma : float
-			An uncertainty in the measured population state abundances (default is 5%).
+			An uncertainty in the measured population state abundances (default is 5%). If None, read uncertainties from the experimental file.
 		title : string
 			A descriptive title for the experiment (default is the trimmed filename).
 		"""
 		
 		assert os.path.isfile(path)
-		assert sigma > 0.0
 
-		self.sigma = sigma
-		
-		self.path = path
-		if title:
-			self.title = title
-		else:
-			self.title = os.path.splitext(os.path.basename(self.path))[0]
+		# relevant file parameters
+		keypairs = {
+			"Lattice":"Lattice","Ligand":"Ligand",
+			"Temperature":T,
+			"Error":sigma,
+			"Title":title,
+		}
 
-		# patches to play nice with the ITCExperimentBase base class constructor.
+		# dummy vars to execute the ITCExperimentBase base class constructor.
 		V0,injections,dQ = 1.0,[1.0],[1.0]
-		Cell,Syringe = {"Lattice":1.0},{"Ligand":1.0}
+		Cell,Syringe = {keypairs['Lattice']:1.0},{keypairs['Ligand']:1.0}
+		ITCExperimentBase.__init__(self, keypairs['Temperature'], V0, injections, dQ, Cell, Syringe)
 
-		ITCExperimentBase.__init__(self, T, V0, injections, dQ, Cell, Syringe, title=self.title)
-
-		# reset key attributes now
+		# reset relevant attributes
+		self.path = path
 		self.Concentrations = []
 		self.npops, self.npoints = None, 0
-		self.Lattice, self.Ligand = "Lattice", "Ligand"
+		self.Lattice, self.Ligand = keypairs['Lattice'],keypairs['Ligand']
 
 		data = []
 		with open(path) as fh:
 			for i, line in enumerate(fh):
 
-				# convert "#@" to "@"
-				if line[0] in ["#"] and line[1] in ["@"]:
-					line = line[1:]
-
 				# ignore empty and comment lines
 				if line.strip() == "":
 					continue
-				elif line[0] in ["#"]: # comment
-					continue
-				elif line[0] in ["@"]: # set a variable
+				elif line[0] in _FILE_COMMENT: # comment
+					if line[1] in _FILE_KEYPAIR: # convert "#@" to "@" to play nice with some plotting scripts
+						line = line[1:]
+					else:
+						continue
+
+				if line[0] in _FILE_KEYPAIR: # set a variable
 					tmp = line.split()
-
-					# hacky experimental file parameter parser. TODO: use ConfigParser in Python 3 to handle file header string
 					try:
-						if tmp[0] == "@Temperature":
-							try:
-								self.T = float(tmp[2])
-							except ValueError:
-								raise Exception("Found malformed Temperature argument in experiment header (could not convert \"%s\" to a number) at line %i"%(tmp[2],i+1))
-						elif tmp[0] == "@Error":
-							try:
-								self.sigma = float(tmp[2])
-							except ValueError:
-								raise Exception("Found malformed Error argument in experiment header (could not convert \"%s\" to a number) at line %i"%(tmp[2],i+1))
-						elif tmp[0] == "@Title":
-							self.title = " ".join(tmp[2:])
-						elif tmp[0] == "@Lattice":
-							self.Lattice = tmp[2]
-						elif tmp[0] == "@Ligand":
-							self.Ligand = tmp[2]
-					except IndexError:
-						raise Exception("Found malformed experiment parameter specification at line %i, should be of the format \"@param = value\""%(i+1))
+						assert len(tmp) > 2
+					except AssertionError:
+						raise Exception("Found malformed experiment parameter specification at line %i, should be of the form \"@param = value\""%(i+1))
 
+					try:
+						assert tmp[0][1:] in keypairs
+					except AssertionError:
+						raise Exception("Found unknown parameter specification \"%s\" at line %i."%(tmp[0][1:],i+1))
+					
+					try:
+						if type(keypairs[tmp[0][1:]]) is str or keypairs[tmp[0][1:]] is None: # title
+							keypairs[tmp[0][1:]] = tmp[2:]
+						else:
+							keypairs[tmp[0][1:]] = float(tmp[2])
+					except ValueError:
+						raise Exception("Found malformed parameter value (could not convert \"%s\" to float) at line %i"%(tmp[2],i+1))
 					continue
 
-				# basic error checking
 				arr = line.split()
 				if len(arr) < 3:
 					raise Exception("Found malformed titration point (less than three columns) at line %i"%(i+1))		
@@ -125,18 +120,48 @@ class MSExperiment(ITCExperimentBase):
 				except ValueError:
 					raise Exception("Found malformed titration point (could not convert column values to floats) at line %i"%(i+1))
 
-				data.extend([f/sum(tmp[2:]) for f in tmp[2:]]) # append the normalized abundances at each titration point
+				data.extend(tmp[2:]) # strip the lattice/ligand concentration columns
+
 				self.Concentrations.append({})
-				self.Concentrations[-1]["Lattice"]	= tmp[0]
-				self.Concentrations[-1]["Ligand"]	= tmp[1]
+				self.Concentrations[-1][keypairs['Lattice']] = tmp[0]
+				self.Concentrations[-1][keypairs['Ligand']] = tmp[1]
 
 				self.npoints += self.npops
 
-		self.PopIntens	= scipy.array(data).reshape((self.npoints/self.npops,self.npops))
-		self.PopSigmas	= scipy.full(self.PopIntens.shape,self.sigma**2)
-		self.PopFits	= scipy.zeros(self.PopIntens.shape)
+		if keypairs['Title'] is None:
+			self.title = os.path.splitext(os.path.basename(self.path))[0]
+		else:
+			self.title = title
+		
+		if keypairs['Error'] is None:
+			try:
+				assert self.npoints % 2 == 0
+				assert min(data[self.npoints/2:]) > 0.0
+			except AssertionError:
+				raise Exception("If sigma == None, must provide nonzero experimental uncertainties in the experimental file.")
+				
+			self.npoints /= 2 # first half of points matrix are experimental values, second half are uncertainties
+			self.Concentrations = self.Concentrations[:self.npoints] # discard the duplicated concentration columns for sigmas
+			self.PopIntens = scipy.array(data[:self.npoints]).reshape((self.npoints/self.npops,self.npops))
+			self.PopSigmas = scipy.array(data[self.npoints:]).reshape((self.npoints/self.npops,self.npops))
+		else:
+			self.sigma = keypairs['Error']
+			self.PopIntens = scipy.array(data).reshape((self.npoints/self.npops,self.npops))
+			self.PopSigmas = scipy.full(self.PopIntens.shape,self.sigma)
+
+		# normalize intensities to 1, accordingly scale their sigmas
+		totals = self.PopIntens.sum(axis=1,keepdims=True)
+		self.PopIntens /= totals
+		self.PopSigmas /= totals
+
+		# precompute variance (s**2) from sigmas
+		self.PopSigmas = scipy.square(self.PopSigmas)
+		self.sigma = scipy.sqrt(scipy.mean(self.PopSigmas))
+
+		self.PopFits = scipy.zeros(self.PopIntens.shape)
 
 		self.chisq = None
+		self.initialized = True
 
 	def __str__(self):
 		"""Stringify the experiment to be suitable for display to the user
@@ -273,7 +298,7 @@ class MSExperiment(ITCExperimentBase):
 		fh.close()
 			
 	def get_chisq(self, pops, writeback=False):
-		"""Calculate the goodness-of-fit between the experimental population abundances and the fitted ones.
+		"""Calculate the chi-square goodness-of-fit between the experimental population abundances and the fitted ones.
 
 		Arguments
 		---------
@@ -291,6 +316,7 @@ class MSExperiment(ITCExperimentBase):
 		-----
 			This method takes advantage of the fact that ITCSim doesn't inspect the data that is returned by the model, and instead lets the associated experiment handle the goodness-of-fit.
 			The only caveat of course is that model must return the same number of lattice+ligand stoichiometries as are present in the experimental results.
+			Variances (sigma**2) must have been precomputed as self.PopSigmas (perhaps should be self.PopVariances?)
 		"""
 
 		assert self.PopIntens.shape == pops.shape

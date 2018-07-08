@@ -31,12 +31,20 @@ class TestMSExperiment(TestITCBase):
 		E.export_to_file(path=self.getFilePath(new=True))
 		self.assertTrue( os.path.isfile(self.getFilePath()) )
 
-	def test_experiment_chisq(self):
+	def test_experiment_chisq_fixedsigma(self):
 		from itcsimlib.itc_experiment import ITCExperiment
 		from itcsimlib.mass_spec import MSExperiment
-		E = MSExperiment(get_test_data('massspec_1.txt'))
+		E = MSExperiment(get_test_data('massspec_1.txt'),sigma=0.05)
 		Q = np.zeros(shape=(E.npoints/E.npops,E.npops))
 		self.assertEqual(round(E.get_chisq(Q),1), 292.8)
+
+	def test_experiment_chisq_filesigma(self):
+		from itcsimlib.itc_experiment import ITCExperiment
+		from itcsimlib.mass_spec import MSExperiment
+		E = MSExperiment(get_test_data('massspec_2.txt'),sigma=None)
+		Q = np.zeros(shape=(E.npoints/E.npops,E.npops))
+		self.assertEqual(round(E.get_chisq(Q),1), 282.0)
+		self.assertEqual(round(E.sigma,2), 0.01)
 
 class TestMSModelBase(TestITCBase):
 	def setUp(self):
