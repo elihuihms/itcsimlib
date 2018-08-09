@@ -34,3 +34,6 @@ MANIFEST
 
 # MacOS garbage
 .DS_Store
+
+# Jupyter notebook checkpoints
+*-checkpoint.ipynb

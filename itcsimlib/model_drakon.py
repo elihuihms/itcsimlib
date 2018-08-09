@@ -34,6 +34,8 @@ class DRAKONIsingModel(Ising):
 		self.set_parameter = self.set_param
 		
 		self.setup()
+
+		#assert ("configuration" in dir(self) and "site" in dir(self)) == False
 	
 	def initialize(self, *args, **kwargs):
 		"""Alias for the parent class constructor, used to explicity call init in DRAKON.
@@ -104,7 +106,7 @@ class DRAKONIsingModel(Ising):
 			self.config_expressions[i] = 0
 			
 			if config_energy_function:
-				self.configuration(i,*self.configs[i])
+				self.configuration(i)
 			else:
 				for j in xrange(self.nsites):
 					self.site(i, j)		
@@ -112,7 +114,7 @@ class DRAKONIsingModel(Ising):
 	def add_dG(self, i, dG, dH=None, dCp=None):
 		"""Convenience function for DRAKON models to increment the gibbs free energy of a configuration.
 		This function also permits temperature-dependent van't Hoff correction, if dH and dCp are not None.
-		Alternatively, an expression consisting of existing model parameters may be provided, but this may result in slow model evaluation, as the expression will need to be eval()'d for every configuration. 
+		Alternatively, an expression consisting of existing model parameters may be provided for each argument, but this will result in slow model evaluation as the expression will need to be eval()'d for every configuration. 
 		
 		Arguments
 		---------
@@ -126,21 +128,39 @@ class DRAKONIsingModel(Ising):
 			The name of the heat capacity change parameter to use in the van't Hoff correction.
 		"""
 		
-		if dG not in self.params: # expression to evaluate
-			dG_v,dG_s = dG,dG
+		if dG in self.params:
+			self.config_expressions[i] += self.parameter_symbols[dG]
+			dG = self.get_param(dG,units="J")
+		else: # expression to evaluate
+			dG_v,dG_s = dG,dG # dG_values, dG_symbols
 			for p in self.params:
-				dG_v = dG_v.replace(p,"self.params['%s']"%p)
+				dG_v = dG_v.replace(p,"self.get_param('%s',units='J')"%p)
 				dG_s = dG_s.replace(p,"self.parameter_symbols['%s']"%p)
-			self.gibbs[i] += eval(dG_v)
+			dG = eval(dG_v)
 			self.config_expressions[i] += eval(dG_s)
-			return
+
+		if dH in self.params:
+			dH = self.get_param(dH,units="J")
+		elif dH is None:
+			pass
+		else:
+			for p in self.params:
+				dH = dH.replace(p,"self.get_param('%s',units='J')"%p)
+			dH = eval(dH)
+
+		if dCp in self.params:
+			dCp = self.get_param(dCp,units="J")
+		elif dCp is None:
+			pass
+		else:
+			for p in self.params:
+				dCp = dCp.replace(p,"self.get_param('%s',units='J')"%p)
+			dCp = eval(dCp)
 		
 		if dH==None or dCp==None:
-			self.gibbs[i] += self.get_param(dG,units="J")
+			self.gibbs[i] += dG
 		else:
-			self.gibbs[i] += dG_vant_Hoff( self.get_param(dG,units="J"), self.get_param(dH,units="J"), self.get_param(dCp,units="J"), self._T, self._T0 )
-		
-		self.config_expressions[i] += self.parameter_symbols[dG]
+			self.gibbs[i] += dG_vant_Hoff( dG, dH, dCp, self._T, self._T0 )
 		
 	def add_dH(self, i, dH, dCp=None):
 		"""Convenience function for DRAKON models to increment the enthalpy of a configuration.
@@ -157,14 +177,24 @@ class DRAKONIsingModel(Ising):
 			The name of the heat capacity change parameter to use in the van't Hoff correction.
 		"""
 		
-		if dH not in self.params: # expression to evaluate
+		if dH in self.params:
+			dH = self.get_param(dH,units="J")
+		else:
 			for p in self.params:
-				dH = dH.replace(p,"self.params['%s']"%p)
-			self.enthalpies[i] += eval(dH)
-			return
+				dH = dH.replace(p,"self.get_param('%s',units='J')"%p)
+			dH = eval(dH)
+
+		if dCp in self.params:
+			dCp = self.get_param(dCp,units="J")
+		elif dCp is None:
+			pass
+		else:
+			for p in self.params:
+				dCp = dCp.replace(p,"self.get_param('%s',units='J')"%p)
+			dCp = eval(dCp)
 		
 		if dCp==None:
-			self.enthalpies[i] += self.get_param(dH,units="J")
+			self.enthalpies[i] += dH
 		else:
-			self.enthalpies[i] += dH_vant_Hoff( self.get_param(dH,units="J"), self.get_param(dCp,units="J"), self._T, self._T0 )
+			self.enthalpies[i] += dH_vant_Hoff( dH, dCp, self._T, self._T0 )
 		

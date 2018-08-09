@@ -183,7 +183,13 @@ class ITCExperimentBase:
 			This method allows the user to update an experimental component by name to match the one used in the model, e.g. from the specific "Tryptophan" specified in the experiment file to the generic "Ligand" used in the model.
 		"""
 
-		assert old_name in self.Concentrations[0]
+		if new_name in self.Cell:
+			#raise Warning("Attempted to change component name to one that already exists in the experiment.")
+			return
+		if new_name in self.Syringe:
+			#raise Warning("Attempted to change component name to one that already exists in the experiment.")
+			return
+
 		for i in xrange(self.npoints):
 			self.Concentrations[i][new_name] = self.Concentrations[i][old_name]
 			del self.Concentrations[i][old_name]

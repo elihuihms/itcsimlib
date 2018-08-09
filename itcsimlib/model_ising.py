@@ -225,7 +225,7 @@ class Ising(ITCModel):
 		
 		return ret
 
-	def draw_lattices(self, file, size=1.0, dG_format="%0.1f"):
+	def draw_lattices(self, file, size=1.0, dG_format="%0.1f", dG_tolerance=6):
 		"""Draw a PDF depicting the energetically-unique configurations of the model, with annotations.
 		
 		Arguments
@@ -235,7 +235,9 @@ class Ising(ITCModel):
 		size : float
 			The radius (for circular lattices) or width (for linear lattices), in cm of the depictions.
 		dG_format : string
-			The formatting string to use when comparing and printing configuration free energies.
+			The formatting string to use when printing configuration free energies.
+		dG_tolerance : float
+			The tolerance (in post-decimal digits) to use when determining configuration free energy degeneracies.
 		
 		Returns
 		-------
@@ -268,7 +270,7 @@ class Ising(ITCModel):
 				c.stroke(path.circle(x,y+(i*w)-(sy/2.0)+(w/2.0),w*0.4), [style.linewidth.Thick])
 				
 			texrun = text.defaulttexrunner
-			c.insert(texrun.text(x+(w*0.6),y+(0.4*sy), r"%s"%str(energy), [text.halign.boxleft, text.valign.middle] ))
+			c.insert(texrun.text(x+(w*0.6),y+(0.4*sy), dG_format%(energy), [text.halign.boxleft, text.valign.middle] ))
 
 			if degeneracy != None:
 				t = c.text(x+(w*0.6),y-(0.4*sy), r"x%s"%str(degeneracy), [text.halign.boxleft, text.valign.top])
@@ -284,7 +286,7 @@ class Ising(ITCModel):
 			c.stroke(path.circle(x,y,inner_r), [style.linewidth.Thick])
 
 			texrun = text.defaulttexrunner
-			c.insert(texrun.text(x, y, r"%s"%str(energy), [text.halign.boxcenter, text.valign.middle] ))
+			c.insert(texrun.text(x, y, dG_format%(energy), [text.halign.boxcenter, text.valign.middle] ))
 			
 			if degeneracy != None:
 				t = c.text(x+(r*0.68),y-(r*0.68), r"x%s"%str(degeneracy), [text.halign.boxleft, text.valign.top])
@@ -300,7 +302,7 @@ class Ising(ITCModel):
 			configurations = {} # keyed by energy, (key,weight)
 			for j in xrange(self.nconfigs):
 				if self.bound[j] == i:
-					energy = dG_format%convert_from_J(self.units,self.gibbs[j])
+					energy = round(convert_from_J(self.units,self.gibbs[j]),dG_tolerance)
 					if energy in configurations.keys():
 						configurations[energy][1]+=1
 					else:
