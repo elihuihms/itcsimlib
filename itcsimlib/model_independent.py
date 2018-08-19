@@ -9,11 +9,13 @@ from thermo		import *
 class OneMode(ITCModel):
 	"""A four-parameter phenomological model describing binding to a single site type."""
 
-	def __init__(self):
-		ITCModel.__init__(self)
+	def __init__(self, *args, **kwargs):
+		ITCModel.__init__(self, *args, **kwargs)
 
-		self.add_component('Macromolecule')
-		self.add_component('Ligand')
+		if self.lattice_name is None:
+			self.add_component('Macromolecule')
+		if self.ligand_name is None:
+			self.add_component('Ligand')
 
 		self.add_parameter( 'n',	'n',	description='n_sites', bounds=[0,None], default=1.0 )
 		self.add_parameter( 'dG',	'dG',	description='Free energy change upon binding' )
@@ -35,13 +37,15 @@ class OneMode(ITCModel):
 class NModes(ITCModel):
 	"""A 4n-parameter phenomological model describing binding to n independent types of sites."""
 
-	def __init__(self,modes=2):
-		ITCModel.__init__(self)
+	def __init__(self,modes=2, *args, **kwargs):
+		ITCModel.__init__(self, *args, **kwargs)
 		self.nmodes = modes
 		self.precision = 1E-9
 
-		self.add_component('Macromolecule')
-		self.add_component('Ligand')
+		if self.lattice_name is None:
+			self.add_component('Macromolecule')
+		if self.ligand_name is None:
+			self.add_component('Ligand')
 
 		for i in xrange(self.nmodes):
 			self.add_parameter( "n%i"%(i+1),	'n',	description='Binding site stoichiometry', bounds=[0,None], default=1.0 )

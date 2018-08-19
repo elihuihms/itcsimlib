@@ -2,6 +2,7 @@
 
 #
 # This script uses an Ising model to dump the best-fit populations/abundancies of different TRAP+Tryptophan stoichiometries at each experimental temperature.
+# Note that a similar effect can be obtained by generating a mass spec experiment and simulating the populations
 #
 
 from itcsimlib import ITCSim,ITCFit

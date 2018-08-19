@@ -83,6 +83,21 @@ class MSExperimentSynthetic(TestMSModelBase):
 
 		self.sim.set_model_params(dGX=-30000,dGY=-30000,dGZ=-30000)
 		self.assertTrue(self.sim.run() > 2)
+
+	def test_population_plots(self):
+		from itcsimlib.mass_spec import MSExperimentSynthetic
+		E = MSExperimentSynthetic(lattice_concs=[1E-6]*20, ligand_concs=[1E-6*i for i in xrange(20)], title="massspec_popplot")
+
+		self.sim.remove_all_experiments()
+		self.sim.add_experiment( E )
+		self.sim.run()
+
+		self.sim.experiments[0].make_population_plot(dataset='fit', hardcopy=True, hardcopydir=self.test_dir, hardcopyprefix="fit_", hardcopytype="png")
+		self.assertTrue( os.path.isfile(os.path.join(self.test_dir,"fit_massspec_popplot.png")) )
+		self.sim.experiments[0].make_population_plot(dataset='experimental', hardcopy=True, hardcopydir=self.test_dir, hardcopyprefix="exp_", hardcopytype="png")
+		self.assertTrue( os.path.isfile(os.path.join(self.test_dir,"exp_massspec_popplot.png")) )
+		self.sim.experiments[0].make_population_plot(dataset='residuals', hardcopy=True, hardcopydir=self.test_dir, hardcopyprefix="res_", hardcopytype="png")
+		self.assertTrue( os.path.isfile(os.path.join(self.test_dir,"res_massspec_popplot.png")) )
 	
 if __name__ == '__main__':
 	unittest.main()

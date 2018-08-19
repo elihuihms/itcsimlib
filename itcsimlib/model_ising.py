@@ -66,11 +66,17 @@ class Ising(ITCModel):
 		self.parameter_symbols = {} # model parameters used during partition function generation
 		self.config_expressions = [ 0 for i in xrange(self.nconfigs) ] # expressions of configuration free energies using the parameter symbols
 		
-		if self.circular:		
-			self.add_component('Lattice',description='A circular lattice with %i binding sites'%(self.nsites))
+		if self.lattice_name is None:
+			self.lattice_name = "Lattice"
+		if self.ligand_name is None:
+			self.ligand_name = "Ligand"
+
+		if self.circular:
+			self.add_component(self.lattice_name, description='A circular lattice with %i binding sites'%(self.nsites))
 		else:
-			self.add_component('Lattice',description='A linear lattice with %i binding sites'%(self.nsites))
-		self.add_component('Ligand',description='A lattice-binding ligand')
+			self.add_component(self.lattice_name, description='A linear lattice with %i binding sites'%(self.nsites))
+
+		self.add_component(self.ligand_name, description='A lattice-binding ligand')
 
 	def add_parameter(self, name, type, **kwargs):
 		"""Wrapper for the typical ITC model add_parameter, with the added tweak that a sympy symbol is created for eventually generating the model's partition function."""
@@ -170,7 +176,7 @@ class Ising(ITCModel):
 		Q = [0.0]*len(concentrations)
 		for i,c in enumerate(concentrations):
 			# set the weights (probabilities) of each lattice configuration
-			self.set_probabilities(c['Lattice'],c['Ligand'],T)
+			self.set_probabilities(c[self.lattice_name],c[self.ligand_name],T)
 			
 			# enthalpy is sum of all weighted enthalpies of the lattices
 			Q[i] = sum( [self.weights[j] * self.enthalpies[j] for j in xrange(self.nconfigs)] )

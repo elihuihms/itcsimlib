@@ -16,25 +16,41 @@ class ITCModel():
 	params : ordered dict of strings
 		The parameters of the model
 	components : list of strings
-		The names of the components that are involved in the binding model (e.g. the macromolecule and ligand)
+		The names of the components that are involved in the binding model (e.g. the lattice/macromolecule and ligand)
 	_param_meta : dict of tuples
 		A storage variable that contains the current value and meta information for each model parameter
 	_component_meta : dict of tuples
 		A storage variable that contains information for each model component
-		
+	lattice_name : string
+		The name of the binding component (for binary systems)
+	ligand_name : string
+		The name of the bound component (for binary systems)
+
 	Notes
 	-----
 		Parameter types can be "n" (stoichiometry), "k" (a kinetic constant, not currently used), "dG" (change in free energy), "dH" (change in enthalpy), "dS" (change in entropy), or "dCp" (change in heat capacity)
-
+		By convention, if lattice_name and ligand_name are not provided, they'll be set to the first and second (respectively) components set by add_component()
 	"""
 	
-	def __init__(self, units="J"):
+	def __init__(self, units="J", lattice_name=None, ligand_name=None):
 		"""The constructor for the base ITCModel class. Child class constructors should call this parent constructor first and then probably do something else with an argument or two.
 		
 		Arguments
 		---------
+		units : string
+			The units to use for energetic parameters (J, kcal, cal)
+		lattice_name : string
+			The name of the binding component (for binary systems)
+		ligand_name : string
+			The name of the bound component (for binary systems)
+
+		Returns
+		-------
 		None
+
 		""" 
+		self.lattice_name = lattice_name
+		self.ligand_name = ligand_name
 		self.units = units
 		
 		self.params = OrderedDict()
@@ -84,6 +100,12 @@ class ITCModel():
 		-------
 		None
 		"""
+
+		if self.lattice_name is None:
+			self.lattice_name = name
+		elif self.ligand_name is None:
+			self.ligand_name = name
+
 		self.components.append(name)
 		self._component_meta[name] = (description)
 	

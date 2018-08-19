@@ -37,7 +37,7 @@ class MSExperiment(ITCExperimentBase):
 		This class abuses several of the usual ITCExperimentBase attributes in a rather dirty fashion - it won't as a simple replacement for many itcsimlib routines, but basic fitting should be OK
 	"""
 
-	def __init__(self, path, T=298.15, sigma=0.05, title=None):
+	def __init__(self, path, T=298.15, sigma=0.05, title=None, lattice_name="Lattice", ligand_name="Ligand"):
 		"""Constructor for the MSExperiment object.
 
 		Arguments
@@ -54,24 +54,24 @@ class MSExperiment(ITCExperimentBase):
 		
 		assert os.path.isfile(path)
 
-		# relevant file parameters
+		# relevant file parameters. TODO: replace using getattr with defaults?
 		keypairs = {
-			"Lattice":"Lattice","Ligand":"Ligand",
+			"Lattice":lattice_name,
+			"Ligand":ligand_name,
 			"Temperature":T,
 			"Error":sigma,
 			"Title":title,
 		}
 
 		# dummy vars to execute the ITCExperimentBase base class constructor.
-		V0,injections,dQ = 1.0,[1.0],[1.0]
-		Cell,Syringe = {keypairs['Lattice']:1.0},{keypairs['Ligand']:1.0}
+		V0, injections, dQ = 1.0, [1.0], [1.0]
+		Cell, Syringe = {keypairs['Lattice']:1.0},{keypairs['Ligand']:1.0}
 		ITCExperimentBase.__init__(self, keypairs['Temperature'], V0, injections, dQ, Cell, Syringe)
 
 		# reset relevant attributes
 		self.path = path
 		self.Concentrations = []
 		self.npops, self.npoints = None, 0
-		self.Lattice, self.Ligand = keypairs['Lattice'],keypairs['Ligand']
 
 		data = []
 		with open(path) as fh:
@@ -100,7 +100,7 @@ class MSExperiment(ITCExperimentBase):
 					
 					try:
 						if type(keypairs[tmp[0][1:]]) is str or keypairs[tmp[0][1:]] is None: # title
-							keypairs[tmp[0][1:]] = tmp[2:]
+							keypairs[tmp[0][1:]] = " ".join(tmp[2:])
 						else:
 							keypairs[tmp[0][1:]] = float(tmp[2])
 					except ValueError:
@@ -131,8 +131,10 @@ class MSExperiment(ITCExperimentBase):
 		if keypairs['Title'] is None:
 			self.title = os.path.splitext(os.path.basename(self.path))[0]
 		else:
-			self.title = title
+			self.title = keypairs['Title']
 		
+		self.lattice_name, self.ligand_name = keypairs['Lattice'], keypairs['Ligand']
+
 		if keypairs['Error'] is None:
 			try:
 				assert self.npoints % 2 == 0
@@ -183,11 +185,11 @@ class MSExperiment(ITCExperimentBase):
 		ret+= "Titration points: %i\n"%(self.npoints/self.npops)
 		ret+= "Stoichiometries: %i\n"%(self.npops)
 		ret+= "Components:\n"
-		ret+= "\tLattice: \"%s\"\n"%(self.Lattice)
-		ret+= "\tLigand: \"%s\"\n"%(self.Ligand)
+		ret+= "\tLattice: \"%s\"\n"%(self.lattice_name)
+		ret+= "\tLigand: \"%s\"\n"%(self.ligand_name)
 		return ret
 	
-	def make_plot(self,hardcopy=False,hardcopydir='.',hardcopyprefix='', hardcopytype='png'):
+	def make_plot(self, hardcopy=False, hardcopydir='.', hardcopyprefix='', hardcopytype='png'):
 		"""Generate a stacked plot of the experimental populations, the fitted populations, and the residuals between the two.
 
 		Arguments
@@ -206,15 +208,11 @@ class MSExperiment(ITCExperimentBase):
 		None
 		"""
 
-		try:
-			if _MATPLOTLIB_BACKEND != None:
-				import matplotlib
-				matplotlib.use(_MATPLOTLIB_BACKEND)
-			import matplotlib.pyplot as pyplot
-		except:
-			pyplot = None
+		if _MATPLOTLIB_BACKEND != None:
+			import matplotlib
+			matplotlib.use(_MATPLOTLIB_BACKEND)
+		import matplotlib.pyplot as pyplot
 
-		if pyplot == None: return
 		if hardcopy: fig = pyplot.figure()
 
 		pyplot.clf()
@@ -265,7 +263,54 @@ class MSExperiment(ITCExperimentBase):
 			pyplot.close(fig)
 		else:
 			pyplot.show()
+
+	def make_population_plot(self, dataset='fit', hardcopy=False, hardcopydir='.', hardcopyprefix='', hardcopytype='png'):
+		assert dataset in ("fit", "experimental", "residuals")
+
+		if not self.initialized and (dataset=="fit" or dataset=="residuals"):
+			raise AssertionError("Fit data has not yet been generated for this experiment")
+
+		if _MATPLOTLIB_BACKEND != None:
+			import matplotlib
+			matplotlib.use(_MATPLOTLIB_BACKEND)
+		
+		import matplotlib.pyplot as pyplot
+		from mpl_toolkits.mplot3d import axes3d, Axes3D
+		
+		pyplot.clf()
+		fig = pyplot.figure()
+		ax = Axes3D(fig)
+#		ax = fig.add_subplot(1, 1, 1, projection='3d') matplotlib version issue
+
+		xs = range(self.npoints / self.npops) # number of concentrations
+		for i in range(self.npops): # iterating over each configuration 
+
+			ys_fit = scipy.array([pop[i] for pop in self.PopFits])
+			ys_exp = scipy.array([pop[i] for pop in self.PopIntens])
 			
+			if dataset == "fit":
+				ys = ys_fit
+			elif dataset == "experimental":
+				ys = ys_exp
+			else:
+				ys = ys_exp - ys_fit
+
+			# z-order doesn't actually do anything afaik, it's just here to show I tried
+			ax.bar(xs, ys, zs=i, zdir='y', zorder=(self.npops-i), color=pyplot.cm.jet(1.0 * i / self.npops), alpha=0.8)
+
+		ax.set_title("%s:(%s)"%(self.title, dataset))
+		ax.set_xlabel('Titration Point')
+		ax.set_ylabel('Stoichiometry')
+		ax.set_zlabel('Abundance')
+		ax.set_zlim([0,1])
+		pyplot.draw()
+
+		if hardcopy:
+			fig.savefig( os.path.join(hardcopydir,"%s%s.%s"%(hardcopyprefix,self.title,hardcopytype)), bbox_inches='tight')
+			pyplot.close(fig)
+		else:
+			pyplot.show()
+
 	def export_to_file(self, path):
 		"""Export the experimental data and any fit to the specified file path.
 
@@ -284,15 +329,15 @@ class MSExperiment(ITCExperimentBase):
 		fh.write("# Experimental data\n")
 		for i in xrange(self.npoints/self.npops):
 			fh.write("%0.3E\t%0.3E\t%s\n" % (
-				self.Concentrations[i]['Lattice'],
-				self.Concentrations[i]['Ligand'],
+				self.Concentrations[i][self.lattice_name],
+				self.Concentrations[i][self.ligand_name],
 				"\t".join(["%f"%f for f in self.PopIntens[i]])))
 
 		fh.write("# Fitted data\n")
 		for i in xrange(self.npoints/self.npops):
 			fh.write("%0.3E\t%0.3E\t%s\n" % (
-				self.Concentrations[i]['Lattice'],
-				self.Concentrations[i]['Ligand'],
+				self.Concentrations[i][self.lattice_name],
+				self.Concentrations[i][self.ligand_name],
 				"\t".join(["%f"%f for f in self.PopFits[i]])))
 
 		fh.close()
@@ -331,7 +376,7 @@ class MSExperiment(ITCExperimentBase):
 class MSExperimentSynthetic(MSExperiment):
 	"""A MSExperiment-derived class that can be used to simulate a mass spec experiment"""
 		
-	def __init__(self, lattice_concs, ligand_concs, T=298.15, noise=0.02, title=None):
+	def __init__(self, lattice_concs, ligand_concs, T=298.15, noise=0.02, title=None, lattice_name="Lattice", ligand_name="Ligand"):
 		"""Constructor for the MSExperimentSynthetic object.
 
 		Arguments
@@ -356,16 +401,17 @@ class MSExperimentSynthetic(MSExperiment):
 		else:
 			self.title = uuid.uuid4()
 
+		self.lattice_name, self.ligand_name = lattice_name, ligand_name
+
 		# patches to play nice with the ITCExperimentBase base class constructor. Do we even need this?
 		V0,injections,dQ = 1.0,[1.0],[1.0]
-		Cell,Syringe = {"Lattice":1.0},{"Ligand":1.0}
+		Cell,Syringe = {self.lattice_name:1.0},{self.ligand_name:1.0}
 		self.path = None
 
 		ITCExperimentBase.__init__(self, T, V0, injections, dQ, Cell, Syringe, title=self.title)
 
 		# reset key attributes now
-		self.Lattice, self.Ligand = "Lattice", "Ligand"
-		self.Concentrations = [{self.Lattice:lattice_concs[i],self.Ligand:ligand_concs[i]} for i in xrange(len(lattice_concs))]
+		self.Concentrations = [{self.lattice_name:lattice_concs[i],self.ligand_name:ligand_concs[i]} for i in xrange(len(lattice_concs))]
 
 		self.initialized = False
 		self.chisq = None
@@ -397,8 +443,18 @@ class MSModel(Ising):
 	Note #2: If the provided class instance has overwritten any of the Ising class methods (other than set_energies), you're best off not using this convertor class."""
 
 	def __init__(self,model):
+		
+		def _recursor(base, base_list):
+			if base.__bases__ == ():
+				return []
+			else:
+				for b in base.__bases__:
+					base_list.append( b.__name__ )
+					_recursor( b, base_list)
+				return base_list
+
 		# ensure that an Ising-based model has been in fact passed
-		assert "Ising" in [b.__name__ for b in model.__class__.__bases__]
+		assert "Ising" in _recursor(model.__class__, [])
 
 		# copy all of the (initialized) parent model attributes
 		self.__dict__ = model.__dict__.copy()
@@ -437,7 +493,7 @@ class MSModel(Ising):
 		for i,c in enumerate(concentrations):
 			
 			# set the probabilities (weights) for all configurations
-			self.model.set_probabilities(c['Lattice'],c['Ligand'],T)
+			self.model.set_probabilities(c[self.lattice_name],c[self.ligand_name],T)
 			
 			# for each stoichiometry, add up the configuration weights
 			for j in xrange(self.model.nconfigs):
