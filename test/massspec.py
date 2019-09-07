@@ -35,14 +35,14 @@ class TestMSExperiment(TestITCBase):
 		from itcsimlib.itc_experiment import ITCExperiment
 		from itcsimlib.mass_spec import MSExperiment
 		E = MSExperiment(get_test_data('massspec_1.txt'),sigma=0.05)
-		Q = np.zeros(shape=(E.npoints/E.npops,E.npops))
+		Q = np.zeros(shape=(int(E.npoints/E.npops),E.npops))
 		self.assertEqual(round(E.get_chisq(Q),1), 292.8)
 
 	def test_experiment_chisq_filesigma(self):
 		from itcsimlib.itc_experiment import ITCExperiment
 		from itcsimlib.mass_spec import MSExperiment
 		E = MSExperiment(get_test_data('massspec_2.txt'),sigma=None)
-		Q = np.zeros(shape=(E.npoints/E.npops,E.npops))
+		Q = np.zeros(shape=(int(E.npoints/E.npops),E.npops))
 		self.assertEqual(round(E.get_chisq(Q),1), 282.0)
 		self.assertEqual(round(E.sigma,2), 0.01)
 
@@ -75,7 +75,7 @@ class TestExpMSModel(TestMSModelBase):
 class MSExperimentSynthetic(TestMSModelBase):
 	def test_synthetic_experiment(self):
 		from itcsimlib.mass_spec import MSExperimentSynthetic
-		E = MSExperimentSynthetic(lattice_concs=[1E-6]*20, ligand_concs=[1E-6*i for i in xrange(20)])
+		E = MSExperimentSynthetic(lattice_concs=[1E-6]*20, ligand_concs=[1E-6*i for i in range(20)])
 
 		self.sim.remove_all_experiments()
 		self.sim.add_experiment( E )
@@ -86,7 +86,7 @@ class MSExperimentSynthetic(TestMSModelBase):
 
 	def test_population_plots(self):
 		from itcsimlib.mass_spec import MSExperimentSynthetic
-		E = MSExperimentSynthetic(lattice_concs=[1E-6]*20, ligand_concs=[1E-6*i for i in xrange(20)], title="massspec_popplot")
+		E = MSExperimentSynthetic(lattice_concs=[1E-6]*20, ligand_concs=[1E-6*i for i in range(20)], title="massspec_popplot")
 
 		self.sim.remove_all_experiments()
 		self.sim.add_experiment( E )

@@ -1,9 +1,15 @@
+"""Binding models for the undecameric TRAP + tryptophan system, demonstrating the use of hybrid models written in C.
+
+
+"""
+
 import os
 import scipy
 import ctypes
 
-from itc_model	import ITCModel
-from thermo		import *
+from .itc_model	import ITCModel
+from .thermo	import *
+
 
 class TRAP_DLL_Model(ITCModel):
 	
@@ -28,7 +34,7 @@ class TRAP_DLL_Model(ITCModel):
 		
 		# patch for compatibility with general model nomenclature
 		if 'TRAP' not in concentrations[0]:
-			concentrations = [{'TRAP':concentrations[i]['Macromolecule'],'Trp':concentrations[i]['Ligand']} for i in xrange(n)]
+			concentrations = [{'TRAP':concentrations[i]['Macromolecule'],'Trp':concentrations[i]['Ligand']} for i in range(n)]
 				
 		status = self.lib.calc(
 			ctypes.c_int( n ),

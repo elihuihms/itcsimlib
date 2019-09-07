@@ -1,10 +1,16 @@
+"""Non-ising type binding models for itcsimlib.
+
+
+"""
+
 import warnings
 import math
 import scipy
 import scipy.optimize
 
-from itc_model	import ITCModel
-from thermo		import *
+from .itc_model	import ITCModel
+from .thermo	import *
+
 
 class OneMode(ITCModel):
 	"""A four-parameter phenomological model describing binding to a single site type."""
@@ -47,7 +53,7 @@ class NModes(ITCModel):
 		if self.ligand_name is None:
 			self.add_component('Ligand')
 
-		for i in xrange(self.nmodes):
+		for i in range(self.nmodes):
 			self.add_parameter( "n%i"%(i+1),	'n',	description='Binding site stoichiometry', bounds=[0,None], default=1.0 )
 			self.add_parameter( "dG%i"%(i+1),	'dG',	description='Free energy change upon binding' )
 			self.add_parameter( "dH%i"%(i+1),	'dH',	description='Enthalpy change upon binding' )
@@ -55,7 +61,7 @@ class NModes(ITCModel):
 
 	def Q(self,T0,T,concentrations):
 		n,p = len(concentrations),[None]*(self.nmodes*3)
-		for i in xrange(self.nmodes):
+		for i in range(self.nmodes):
 			dG,dH,dCp	= 'dG'+str(i+1),'dH'+str(i+1),'dCp'+str(i+1)
 			p[i*3 +0]	= self.params['n'+str(i+1)]
 			p[i*3 +1]	= 1.0/Kd_from_dG( dG_vant_Hoff( self.params[dG], self.params[dH], self.params[dCp], T, T0 ), T)
@@ -67,7 +73,7 @@ class NModes(ITCModel):
 
 		def _get_free(Lfree,Ltot,Ptot):
 			Lbound = 0.0
-			for i in xrange(self.nmodes):
+			for i in range(self.nmodes):
 				stoich,Ka,dH = p[i*3:i*3+3]
 				Lbound += stoich * Ptot * (Ka*Lfree)/(Ka*Lfree +1)
 			return Ltot -Lbound -Lfree
@@ -75,7 +81,7 @@ class NModes(ITCModel):
 		Q = [0.0]*n
 		for j,c in enumerate(concentrations):
 			Lfree = scipy.optimize.brentq( _get_free, 0.0, c['Ligand'], args=(c['Ligand'],c['Macromolecule']), xtol=self.precision, disp=True )
-			for i in xrange(self.nmodes):
+			for i in range(self.nmodes):
 				stoich,Ka,dH = p[i*3:i*3+3]
 				Q[j] +=( stoich * dH * (Ka*Lfree)/(Ka*Lfree +1) )
 		return Q

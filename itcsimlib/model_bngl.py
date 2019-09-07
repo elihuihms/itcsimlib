@@ -4,13 +4,11 @@ import shutil
 import pexpect
 import xml.etree.ElementTree as ET
 
-from thermo		import *
-from itc_model	import ITCModel
+from collections import OrderedDict
 
-try:
-	_tmp = OrderedDict()
-except:
-	from ordered_dict	import OrderedDict
+from .thermo	import *
+from .itc_model	import ITCModel
+
 	
 class BNGL(ITCModel):
 
@@ -60,7 +58,7 @@ class BNGL(ITCModel):
 			f.write(self.log.read())
 			f.close()
 		else:
-			print self.log.read()
+			print(self.log.read())
 
 	def send_bng(self,cmd):
 		self.bng.sendline(cmd)
@@ -137,7 +135,7 @@ class BNGL(ITCModel):
 		Q,counter = [0.0]*(len(concentrations)*steppoints),0
 		for i,concs in enumerate(concentrations):
 			
-			for name,value in concs.iteritems():
+			for name,value in concs.items():
 				self.send_bng("action setConcentration(\"%s\",%.5E)"%(name,(value - prev_concentrations[name][0]) +prev_concentrations[name][1]))
 				
 				#increase total conc
@@ -149,7 +147,7 @@ class BNGL(ITCModel):
 			for j,name in enumerate(self.model_species):
 			
 				# increment the heat content in the cell from the enthalpy of each component
-				for k in xrange(steppoints):
+				for k in range(steppoints):
 					Q[counter+k] += timecourse[k][j] * enthalpies[name]
 				
 				#set final free conc

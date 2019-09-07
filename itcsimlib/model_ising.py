@@ -1,20 +1,20 @@
+"""Ising, i.e. lattice+ligand binding models for itcsimlib.
+
+
+"""
+
 import sys
 import scipy
 import scipy.optimize
+import sympy
+import pyx
 
-from itc_model	import ITCModel
-from thermo		import _R
-from thermo		import *
+from collections import OrderedDict
 
-try:
-	_tmp = OrderedDict()
-except:
-	from ordered_dict	import OrderedDict
-	
-try:
-	import sympy
-except:
-	pass
+from .itc_model	import ITCModel
+from .thermo	import _R
+from .thermo	import *
+
 
 class Ising(ITCModel):
 	"""An ITC model based on ligand binding to an Ising lattice.
@@ -56,7 +56,7 @@ class Ising(ITCModel):
 		self.nsites,self.circular = nsites,circular
 		
 		self.nconfigs	= 2**self.nsites
-		self.configs	= [ [int(s) for s in ("{0:0%ib}"%(self.nsites)).format(i)] for i in xrange(self.nconfigs) ]
+		self.configs	= [ [int(s) for s in ("{0:0%ib}"%(self.nsites)).format(i)] for i in range(self.nconfigs) ]
 		self.bound		= [ c.count(1) for c in self.configs ] # number of bound sites
 		self.weights	= [0.0]*self.nconfigs # probability of each config
 		self.gibbs		= [0.0]*self.nconfigs # free energy of each config
@@ -64,7 +64,7 @@ class Ising(ITCModel):
 		self.precision	= 1E-12 # the precision in ligand concentration required for convergence during set_probabilities()
 		
 		self.parameter_symbols = {} # model parameters used during partition function generation
-		self.config_expressions = [ 0 for i in xrange(self.nconfigs) ] # expressions of configuration free energies using the parameter symbols
+		self.config_expressions = [ 0 for i in range(self.nconfigs) ] # expressions of configuration free energies using the parameter symbols
 		
 		if self.lattice_name is None:
 			self.lattice_name = "Lattice"
@@ -134,12 +134,12 @@ class Ising(ITCModel):
 			# Return the deviation between predicted and actual free ligand concentration
 			
 			# set the probability of each configuration at the free ligand concentration
-			self.weights = [scipy.exp( (-1.0 * self.gibbs[i]) / ( _R * T ) ) * freeL**self.bound[i] for i in xrange(self.nconfigs) ]
+			self.weights = [scipy.exp( (-1.0 * self.gibbs[i]) / ( _R * T ) ) * freeL**self.bound[i] for i in range(self.nconfigs) ]
 			total = sum(self.weights)
-			self.weights = [ self.weights[i] / total for i in xrange(self.nconfigs) ]
+			self.weights = [ self.weights[i] / total for i in range(self.nconfigs) ]
 			
 			# concentration of sites in bound state
-			bound = sum( [totalP * self.weights[i] * self.bound[i] for i in xrange(self.nconfigs)] )
+			bound = sum( [totalP * self.weights[i] * self.bound[i] for i in range(self.nconfigs)] )
 
 			return totalL - (freeL + bound)
 		
@@ -179,7 +179,7 @@ class Ising(ITCModel):
 			self.set_probabilities(c[self.lattice_name],c[self.ligand_name],T)
 			
 			# enthalpy is sum of all weighted enthalpies of the lattices
-			Q[i] = sum( [self.weights[j] * self.enthalpies[j] for j in xrange(self.nconfigs)] )
+			Q[i] = sum( [self.weights[j] * self.enthalpies[j] for j in range(self.nconfigs)] )
 
 		return Q
 			
@@ -198,24 +198,21 @@ class Ising(ITCModel):
 		sympy object
 			The symbolic partition function for the model.
 		"""
-		if not "sympy" in sys.modules:
-			raise RuntimeError("sympy must be installed to call get_partition_function")
-			return
 
 		self.set_energies(273.15,273.15) # ensure that this is run at least once to populate config_terms
 
 		L,R,T = sympy.symbols("L R T") # ligand, gas constant, temp
 				
-		config_expressions = [ None for i in xrange(self.nconfigs) ] # convert all configuration free energies to effective K(a)s
-		for i in xrange(self.nconfigs):
+		config_expressions = [ None for i in range(self.nconfigs) ] # convert all configuration free energies to effective K(a)s
+		for i in range(self.nconfigs):
 			config_expressions[i] = sympy.exp(self.config_expressions[i] / (R*T))
 
-		bound_expressions = [ 0 for i in xrange(self.nsites+1) ] # sum configuration Ks at each stoichiometry
-		for i in xrange(self.nconfigs):
+		bound_expressions = [ 0 for i in range(self.nsites+1) ] # sum configuration Ks at each stoichiometry
+		for i in range(self.nconfigs):
 			bound_expressions[self.bound[i]] += config_expressions[i]
 				
 		ret = 0
-		for i in xrange(self.nsites+1):
+		for i in range(self.nsites+1):
 			if substitute_Ks:
 				bound_expressions[i] = sympy.expand(bound_expressions[i]) # expand first in order to effectively combine terms later	
 				for p in self.params: # replace simple intrinsic or multiplicative binding factors
@@ -270,7 +267,7 @@ class Ising(ITCModel):
 			rect = box.polygon([(x0, y0),(x1, y0),(x1, y1),(x0, y1)])
 			c.stroke(rect.path(), [style.linewidth.Thick]) # deformer.smoothed(radius=w*2)])
 
-			for i in xrange(0,n):
+			for i in range(0,n):
 				if key[i] > 0:
 					c.fill(path.circle(x,y+(i*w)-(sy/2.0)+(w/2.0),w*0.3), [color.rgb.blue])
 				c.stroke(path.circle(x,y+(i*w)-(sy/2.0)+(w/2.0),w*0.4), [style.linewidth.Thick])
@@ -297,16 +294,16 @@ class Ising(ITCModel):
 			if degeneracy != None:
 				t = c.text(x+(r*0.68),y-(r*0.68), r"x%s"%str(degeneracy), [text.halign.boxleft, text.valign.top])
 
-			for i in xrange(0,n):
+			for i in range(0,n):
 				circ_x = x+(scipy.cos(2.0*scipy.pi/n*i)*(r-(0.5*chord)))
 				circ_y = y+(scipy.sin(2.0*scipy.pi/n*i)*(r-(0.5*chord)))
 				if key[i] > 0:
 					c.fill(path.circle(circ_x,circ_y,site_r*0.6), [color.rgb.blue])
 				c.stroke(path.circle(circ_x,circ_y,site_r*0.8), [style.linewidth.Thick])
 
-		for i in xrange(self.nsites+1):
+		for i in range(self.nsites+1):
 			configurations = {} # keyed by energy, (key,weight)
-			for j in xrange(self.nconfigs):
+			for j in range(self.nconfigs):
 				if self.bound[j] == i:
 					energy = round(convert_from_J(self.units,self.gibbs[j]),dG_tolerance)
 					if energy in configurations.keys():
@@ -341,7 +338,7 @@ class Ising(ITCModel):
 		None
 		"""
 		
-		for i in xrange(self.nconfigs):
+		for i in range(self.nconfigs):
 			self.gibbs[i], self.enthalpies = 0.0, 0.0
 			
 		raise NotImplementedError("Valid ITC Ising models should implement this!")
@@ -370,11 +367,11 @@ class FullAdditive(Ising):
 		dHa = dH_vant_Hoff( self.params['dHa'], self.params['dCpa'], T, T0 )
 		dHb = dH_vant_Hoff( self.params['dHb'], self.params['dCpb'], T, T0 )
 		
-		for i in xrange(self.nconfigs):
+		for i in range(self.nconfigs):
 			self.gibbs[i],self.enthalpies[i] = 0.0,0.0
 			self.config_expressions[i] = 0
 			
-			for j in xrange(self.nsites):
+			for j in range(self.nsites):
 
 				if self.get_site_occupancy(i,j): # is site occupied?
 					self.gibbs[i]+=dG0
@@ -419,11 +416,11 @@ class HalfAdditive(Ising):
 		dH0 = dH_vant_Hoff( self.params['dH0'], self.params['dCp0'], T, T0 )
 		dHb = dH_vant_Hoff( self.params['dHb'], self.params['dCpb'], T, T0 )
 		
-		for i in xrange(self.nconfigs):
+		for i in range(self.nconfigs):
 			self.gibbs[i],self.enthalpies[i] = 0.0,0.0
 			self.config_expressions[i] = 0
 
-			for j in xrange(self.nsites):
+			for j in range(self.nsites):
 
 				if self.get_site_occupancy(i,j): # is site occupied?
 					self.gibbs[i]+=dG0
@@ -460,11 +457,11 @@ class NonAdditive(Ising):
 		dHY = dH_vant_Hoff( self.params['dHY'], self.params['dCpY'], T, T0 )
 		dHZ = dH_vant_Hoff( self.params['dHZ'], self.params['dCpZ'], T, T0 )
 		
-		for i in xrange(self.nconfigs):
+		for i in range(self.nconfigs):
 			self.gibbs[i],self.enthalpies[i] = 0.0,0.0
 			self.config_expressions[i] = 0
 			
-			for j in xrange(self.nsites):
+			for j in range(self.nsites):
 				if self.get_site_occupancy(i,j): # is site occupied?
 
 					if self.get_site_occupancy(i,j+1): # is the next neighboring site occupied?

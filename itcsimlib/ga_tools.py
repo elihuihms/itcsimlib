@@ -1,3 +1,8 @@
+"""Tools for using a genetic algorithm to search for combinations of model parameters that can be combined.
+
+
+"""
+
 import scipy
 
 def get_stats( population, full_output=False ):
@@ -32,13 +37,13 @@ def get_relationships( population ):
 		p_inver[type] = [p for p in model.get_param_names() if model.get_param_type(p)==type]
 		n = len(p_inver[type])
 		p_table[type] = scipy.zeros((n,n))
-		p_index[type] = dict(zip(p_inver[type],xrange(n)))
+		p_index[type] = dict(zip(p_inver[type],range(n)))
 		
-		for i in xrange(len(population)):
+		for i in range(len(population)):
 			for (group,value) in population.member_param_map[i][type]:
 				n = len(group)
-				for i in xrange(n):
-					for j in xrange(n):
+				for i in range(n):
+					for j in range(n):
 						p_table[type][ p_index[type][group[i]] ][ p_index[type][group[j]] ] += 1
 			
 	
@@ -53,7 +58,7 @@ def print_relationships( p_table, p_inver, format="%0.3F" ):
 		ret += "\t"
 		ret += ("\t".join(p_inver[type]))
 		ret += "\n"
-		for i in xrange(len(p_inver[type])):
+		for i in range(len(p_inver[type])):
 			ret += p_inver[type][i]
 			ret += "\t"
 			ret += ("\t".join([format%f for f in p_table[type][i]]))

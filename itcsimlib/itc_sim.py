@@ -1,11 +1,17 @@
+"""Classes for simulating/fitting experimental data with binding models.
+
+
+"""
+
 import os
 import copy
 import multiprocessing
 
-from itc_experiment		import *
-from itc_calc			import ITCCalc
-from thermo				import _UNITS
-from utilities			import *
+from .itc_experiment	import *
+from .itc_calc			import ITCCalc
+from .thermo			import _UNITS
+from .utilities			import *
+
 
 class ITCSim:
 	"""This core class evaluates binding models against experimental data.
@@ -178,7 +184,7 @@ class ITCSim:
 		self.model = model
 		self.model.set_units(self.units)
 
-		for i in xrange(len(self.workers)):
+		for i in range(len(self.workers)):
 			self.workers[i] = ITCCalc( self.T0, self.model, self.in_Queue, self.out_Queue )
 			self.workers[i].start()
 
@@ -203,11 +209,11 @@ class ITCSim:
 		"""
 
 		# send term signal to workers
-		for i in xrange(len(self.workers)):
+		for i in range(len(self.workers)):
 			self.in_Queue.put( None )
 
 		# make sure they're all shut down
-		for i in xrange(len(self.workers)):
+		for i in range(len(self.workers)):
 			if self.workers[i] != None:
 				self.workers[i].join()
 			self.workers[i] = None
@@ -361,7 +367,7 @@ class ITCSim:
 			experiments = self.experiments
 
 		if len(experiments) == 0:
-			print "itc_sim: No experiments to simulate."
+			print("itc_sim: No experiments to simulate.")
 			return None
 
 		# without multiprocessing (avoids requirement for __name__ guards in Windows)
@@ -386,7 +392,7 @@ class ITCSim:
 			for title,data in queue_contents:
 				# in the case of an exception during model execution, title will be None
 				if title == None:
-					print "\nitc_sim: Fatal error during model evalution: %s"%(data)
+					print("\nitc_sim: Fatal error during model evalution: %s"%(data))
 					self.done()
 					return None
 				else:

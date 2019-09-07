@@ -1,6 +1,12 @@
+"""Primitive GUI elements to modify model parameters in real time.
+
+
+"""
+
 import math
 
 from Tkinter	import *
+
 
 class Manipulator(Tk):
 
@@ -50,7 +56,7 @@ class Manipulator(Tk):
 		self.bind('<ButtonRelease-1>',self.slide_rescale)
 		self.bind('<Return>',self.entry_update)
 
-		for i in xrange(self.size):
+		for i in range(self.size):
 			value = float(self.entries[i].get())
 			self.sliders[i].config(to	=1.5*value)
 			self.sliders[i].config(from_=0.5*value)
@@ -60,7 +66,7 @@ class Manipulator(Tk):
 
 	def _update_figures(self):
 		if self.callback != None:
-			self.callback([float(self.entries[i].get()) for i in xrange(self.size)])
+			self.callback([float(self.entries[i].get()) for i in range(self.size)])
 		else:
 			for i,p in enumerate(self.params):
 				self.sim.set_model_param(p,float(self.entries[i].get()))
@@ -115,7 +121,7 @@ class Visualizer(Toplevel):
 
 		from __init__ import MATPLOTLIB_BACKEND
 		if MATPLOTLIB_BACKEND != None:
-			print "manipulator: Setting matplotlib backend to \"TkAgg\"."
+			print("manipulator: Setting matplotlib backend to \"TkAgg\".")
 			
 		import matplotlib
 		matplotlib.use("TkAgg")
@@ -145,7 +151,7 @@ class Visualizer(Toplevel):
 		self.axs,self.exp,self.fit = [],[],[]
 		for i,e in enumerate(self.experiments):
 			self.axs.append( self.fig.add_subplot(size,size,i+1) )
-			ratios = [ e.Concentrations[i][e.syringeRef]/e.Concentrations[i][e.cellRef] for i in xrange(e.npoints) if i not in e.skip ]
+			ratios = [ e.Concentrations[i][e.syringeRef]/e.Concentrations[i][e.cellRef] for i in range(e.npoints) if i not in e.skip ]
 			self.exp.append( self.axs[-1].scatter(ratios,e.dQ_exp,c='#000000') )
 			self.fit.append( self.axs[-1].plot(ratios,e.dQ_fit,c='#FF0000')[0] )
 		self.canvas.draw()

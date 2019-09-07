@@ -1,6 +1,12 @@
+"""Base itc calculation routines for handling multiprocessing.
+
+
+"""
+
 import sys
 import traceback
 import multiprocessing
+
 
 class ITCCalc(multiprocessing.Process):
 	"""Worker daemon that uses the provided model to predict titration point enthalpies.

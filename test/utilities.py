@@ -18,11 +18,6 @@ class TestITCUtilities(TestITCBase):
 		write_params_to_file( self.getFilePath(True), params )
 		self.assertEqual( params, read_params_from_file( self.getFilePath() ) )
 
-	def test_savitsky_golay_filter(self):
-		data = pickle.load(open(get_test_data("utilities_1.test")))
-		spl = savitzky_golay( data[1][1], window_size=7, order=1 )
-		self.assertEqual( round(sum(spl),2), -28.66 )
-
 class TestITCConvertors(TestITCBase):
 	def test_rw_experiment_file(self):
 		E1 = read_itcsimlib_exp(get_test_data("utilities_1.txt"))

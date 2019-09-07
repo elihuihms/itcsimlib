@@ -1,5 +1,11 @@
-from thermo import *
-from model_ising import Ising
+"""Helper classes and functions that permit use of DRAKON to build statistical thermodynamics models.
+
+
+"""
+
+from .thermo import *
+from .model_ising import Ising
+
 
 class DRAKONIsingModel(Ising):
 	"""A wrapper/simplification interface for an Ising model for use in DRAKON flow diagram-based models.
@@ -101,14 +107,14 @@ class DRAKONIsingModel(Ising):
 		
 		config_energy_function = getattr(self, "configuration", False)
 		
-		for i in xrange(self.nconfigs):
+		for i in range(self.nconfigs):
 			self.gibbs[i],self.enthalpies[i] = 0.0,0.0
 			self.config_expressions[i] = 0
 			
 			if config_energy_function:
 				self.configuration(i)
 			else:
-				for j in xrange(self.nsites):
+				for j in range(self.nsites):
 					self.site(i, j)		
 		
 	def add_dG(self, i, dG, dH=None, dCp=None):
