@@ -5,7 +5,7 @@
 
 import math
 
-from Tkinter	import *
+from tkinter	import *
 
 
 class Manipulator(Tk):
@@ -119,7 +119,7 @@ class Visualizer(Toplevel):
 		Toplevel.__init__(self,master)
 		self.master = master
 
-		from __init__ import MATPLOTLIB_BACKEND
+		from . import MATPLOTLIB_BACKEND
 		if MATPLOTLIB_BACKEND != None:
 			print("manipulator: Setting matplotlib backend to \"TkAgg\".")
 			
@@ -136,7 +136,7 @@ class Visualizer(Toplevel):
 		pyplot.ion()
 
 		self.canvas = FigureCanvasTkAgg(self.fig, master=self)
-		self.canvas.show()
+		self.canvas.draw()
 		self.canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
 		self.canvas._tkcanvas.pack(side=TOP, fill=BOTH, expand=1)
 		self.update()

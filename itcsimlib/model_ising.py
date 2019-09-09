@@ -228,12 +228,12 @@ class Ising(ITCModel):
 		
 		return ret
 
-	def draw_lattices(self, file, size=1.0, dG_format="%0.1f", dG_tolerance=6):
+	def draw_lattices(self, file=None, size=1.0, dG_format="%0.1f", dG_tolerance=6):
 		"""Draw a PDF depicting the energetically-unique configurations of the model, with annotations.
 		
 		Arguments
 		---------
-		file : string
+		file : string (or None)
 			The path at which to save the file.
 		size : float
 			The radius (for circular lattices) or width (for linear lattices), in cm of the depictions.
@@ -244,7 +244,7 @@ class Ising(ITCModel):
 		
 		Returns
 		-------
-		None
+		pyx.canvas object.
 		
 		Notes
 		-----
@@ -272,8 +272,7 @@ class Ising(ITCModel):
 					c.fill(path.circle(x,y+(i*w)-(sy/2.0)+(w/2.0),w*0.3), [color.rgb.blue])
 				c.stroke(path.circle(x,y+(i*w)-(sy/2.0)+(w/2.0),w*0.4), [style.linewidth.Thick])
 				
-			texrun = text.defaulttexrunner
-			c.insert(texrun.text(x+(w*0.6),y+(0.4*sy), dG_format%(energy), [text.halign.boxleft, text.valign.middle] ))
+			c.text(x+(w*0.6),y+(0.4*sy), dG_format%(energy), [text.halign.boxleft, text.valign.middle] )
 
 			if degeneracy != None:
 				t = c.text(x+(w*0.6),y-(0.4*sy), r"x%s"%str(degeneracy), [text.halign.boxleft, text.valign.top])
@@ -288,8 +287,7 @@ class Ising(ITCModel):
 			c.stroke(path.circle(x,y,outer_r), [style.linewidth.Thick])
 			c.stroke(path.circle(x,y,inner_r), [style.linewidth.Thick])
 
-			texrun = text.defaulttexrunner
-			c.insert(texrun.text(x, y, dG_format%(energy), [text.halign.boxcenter, text.valign.middle] ))
+			c.text(x, y, dG_format%(energy), [text.halign.boxcenter, text.valign.middle] )
 			
 			if degeneracy != None:
 				t = c.text(x+(r*0.68),y-(r*0.68), r"x%s"%str(degeneracy), [text.halign.boxleft, text.valign.top])
@@ -320,8 +318,11 @@ class Ising(ITCModel):
 					_draw_linear_lattice(c,
 						(2.2*size*j,0-1.1*size*i*self.nsites),size,self.nsites,
 						key=configurations[energy][0],energy=energy,degeneracy=configurations[energy][1])
-					
-		c.writePDFfile(file)
+		
+		if file is not None:
+			c.writePDFfile(file)
+
+		return c
 
 	def set_energies(self,T0,T):
 		"""Set the free and enthalpic energy of each lattice configuration using the current parameter values. This method is a stub that child classes should replace.
