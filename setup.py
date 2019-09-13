@@ -1,21 +1,29 @@
 import os
 import sys
 
-if sys.version_info < (2, 6, 0):
-	sys.stderr.write("Error: itcsimlib requires Python 2.6 or newer.\n")
+if sys.version_info < (3, 0, 0):
+	sys.stderr.write("Error: itcsimlib requires Python 3.0 or newer.\n")
 	sys.exit(-1)
 
-from distutils.core import setup,Extension
+from distutils.core import setup, Extension
 from distutils.version import LooseVersion
 from distutils.command import build
 
 import scipy
 if LooseVersion(scipy.__version__) < LooseVersion("0.11"):
-	print "Error: itcsimlib requires scipy 0.11 or higher."
+	print("Error: itcsimlib requires scipy 0.11 or higher.")
 
 import matplotlib
 if LooseVersion(matplotlib.__version__) < LooseVersion("1.3"):
-	print "Error: itcsimlib requires matplotlib 1.3 or higher."
+	print("Error: itcsimlib requires matplotlib 1.3 or higher.")
+
+import sympy
+if LooseVersion(sympy.__version__) < LooseVersion("1.3"):
+	print("Error: itcsimlib requires matplotlib 1.3 or higher.")
+
+import pyx
+if LooseVersion(pyx.__version__) < LooseVersion("1.3"):
+	print("Error: itcsimlib requires matplotlib 1.3 or higher.")
 
 import itcsimlib
 
@@ -59,7 +67,10 @@ setup(
 	platforms			= 'any',
 	classifiers			= [
 		'Topic :: Scientific/Engineering',
-		'Development Status :: 3 - Alpha',
+		'Topic :: Scientific/Engineering :: Chemistry',
+		'Topic :: Scientific/Engineering :: Physics',
+		''
+		'Development Status :: 5 - Stable',
 		'Intended Audience :: Science/Research',
 		'License :: OSI Approved :: GNU General Public License v2 (GPLv2)'
 	],

@@ -1,5 +1,5 @@
 __version__		= "0.6.0"
-__copyright__	= """Copyright (C) 2018  Elihu Ihms
+__copyright__	= """Copyright (C) Elihu Ihms
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
