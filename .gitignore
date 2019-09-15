@@ -35,5 +35,10 @@ MANIFEST
 # MacOS garbage
 .DS_Store
 
+# Sphinx build dirs
+docs/_build
+docs/_static
+docs/_templates
+
 # Jupyter notebook checkpoints
 *-checkpoint.ipynb

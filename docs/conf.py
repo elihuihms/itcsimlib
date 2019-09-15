@@ -16,17 +16,19 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
+from itcsimlib import __version__, __copyright__, __author__
+
 
 # -- Project information -----------------------------------------------------
 
 project = u'itcsimlib'
-copyright = u'2019, Elihu Ihms'
-author = u'Elihu Ihms'
+copyright = '2019 Elihu Ihms'
+author = __author__
 
 # The short X.Y version
-version = u''
+version = __version__
 # The full version, including alpha/beta/rc tags
-release = u'1.0'
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -40,8 +42,13 @@ release = u'1.0'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode'
 ]
+
+# Autodoc options
+autodoc_member_order = 'bysource'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -76,7 +83,7 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'classic'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
