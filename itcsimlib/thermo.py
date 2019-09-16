@@ -1,4 +1,4 @@
-"""Basic thermodynamic transforms.
+"""Basic thermodynamic transform/conversion functions.
 
 
 """

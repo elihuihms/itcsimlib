@@ -28,7 +28,9 @@ class OneMode(ITCModel):
 		self.add_parameter( 'dH',	'dH',	description='Enthalpy change upon binding' )
 		self.add_parameter( 'dCp',	'dCp',	description='Heat capacity change' )
 
-	def Q(self,T0,T,concentrations):	
+	def Q(self,T0,T,concentrations):
+		"""Returns the total binding heat at each injection predicted by the model and its current parameter values. See parent model for information."""
+
 		n1,Ka,dH = (
 			self.params['n'],
 			1.0/Kd_from_dG( dG_vant_Hoff( self.params['dG'], self.params['dH'], self.params['dCp'], T, T0 ), T),
@@ -60,6 +62,8 @@ class NModes(ITCModel):
 			self.add_parameter( "dCp%i"%(i+1),	'dCp',	description='Heat capacity change' )
 
 	def Q(self,T0,T,concentrations):
+		"""Returns the total binding heat at each injection predicted by the model and its current parameter values. See parent model for information."""
+
 		n,p = len(concentrations),[None]*(self.nmodes*3)
 		for i in range(self.nmodes):
 			dG,dH,dCp	= 'dG'+str(i+1),'dH'+str(i+1),'dCp'+str(i+1)

@@ -1,4 +1,4 @@
-"""Ising, i.e. lattice+ligand binding models for itcsimlib.
+"""Provides Ising type lattice+ligand binding models for itcsimlib.
 
 
 """
@@ -17,7 +17,7 @@ from .thermo	import *
 
 
 class Ising(ITCModel):
-	"""An ITC model based on ligand binding to an Ising lattice.
+	"""An model based on ligand binding to an Ising lattice.
 	
 	Attributes
 	----------
@@ -244,7 +244,7 @@ class Ising(ITCModel):
 		
 		Returns
 		-------
-		pyx.canvas object.
+		pyx.canvas
 		
 		Notes
 		-----
@@ -361,6 +361,8 @@ class FullAdditive(Ising):
 		self.add_parameter( 'dCpb',	'dCp',	description='Additional heat capacity change upon binding to a site flanked by an occupied site' )
 
 	def set_energies(self,T0,T):
+		"""Sets energies for each configuration. See model description."""
+
 		dG0 = dG_vant_Hoff( self.params['dG0'], self.params['dH0'], self.params['dCp0'], T, T0 )
 		dGa = dG_vant_Hoff( self.params['dGa'], self.params['dHa'], self.params['dCpa'], T, T0 )
 		dGb = dG_vant_Hoff( self.params['dGb'], self.params['dHb'], self.params['dCpb'], T, T0 )
@@ -412,6 +414,8 @@ class HalfAdditive(Ising):
 		self.add_parameter( 'dCpb',	'dCp',	description='Additional heat capacity change upon binding to a site flanked by an occupied site' )
 
 	def set_energies(self,T0,T):
+		"""Sets energies for each configuration. See model description."""
+
 		dG0 = dG_vant_Hoff( self.params['dG0'], self.params['dH0'], self.params['dCp0'], T, T0 )
 		dGb = dG_vant_Hoff( self.params['dGb'], self.params['dHb'], self.params['dCpb'], T, T0 )
 		dH0 = dH_vant_Hoff( self.params['dH0'], self.params['dCp0'], T, T0 )
@@ -451,6 +455,8 @@ class NonAdditive(Ising):
 		self.add_parameter( 'dCpZ',	'dCp',	description='Change in heat capacity upon binding to a site flanked by two occupied' )
 
 	def set_energies(self,T0,T):
+		"""Sets energies for each configuration. See model description."""
+
 		dGX = dG_vant_Hoff( self.params['dGX'], self.params['dHX'], self.params['dCpX'], T, T0 )
 		dGY = dG_vant_Hoff( self.params['dGY'], self.params['dHY'], self.params['dCpY'], T, T0 )
 		dGZ = dG_vant_Hoff( self.params['dGZ'], self.params['dHZ'], self.params['dCpZ'], T, T0 )
