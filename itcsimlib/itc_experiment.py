@@ -1,4 +1,4 @@
-"""Classes for handling simulated and experimental data.
+"""Core classes for handling simulated and empirical data.
 
 
 """
@@ -14,7 +14,7 @@ from .utilities	import savitzky_golay
 
 
 class ITCExperimentBase:
-	"""A class that encapsulates a specific ITC experiment.
+	"""Provides the essential required elements of an ITC experiment.
 
 	Attributes
 	----------
@@ -73,6 +73,8 @@ class ITCExperimentBase:
 		self.Q_dil		= Q_dil
 		self.units		= units
 
+		self._USE_OLD_DILUTION_Q = False # deprecated patch to use old heat of dilution calculation
+
 		if title:
 			self.title		= title
 		else: # assign a pseudounique title
@@ -105,21 +107,28 @@ class ITCExperimentBase:
 		for i in range(self.npoints):
 			dV = sum(self.injections[0:i])
 			
-			self.dDQ_conc[i] = (1.0*self.injections[i]/V0) + ((1.0*dV/V0) * (1.0/(1.0+(dV/(2.0*V0)))))
+			self.dDQ_conc[i] = (1.0*self.injections[i]/self.V0) + ((1.0*dV/self.V0) * (1.0/(1.0+(dV/(2.0*self.V0)))))
 			
 			# these are += because it's possible that a component could be in both the syringe and cell solutions
 			for s in self.Syringe:
-				self.Concentrations[i][s] += (self.Syringe[s]*self.injections[i]/V0) + ((self.Syringe[s]*dV/V0) * (1.0/(1.0+(dV/(2.0*V0)))))
+				self.Concentrations[i][s] += (self.Syringe[s]*self.injections[i]/self.V0) + ((self.Syringe[s]*dV/self.V0) * (1.0/(1.0+(dV/(2.0*self.V0)))))
 			for s in self.Cell:
-				self.Concentrations[i][s] += self.Cell[s] * ( (1-(dV/(2.0*V0))) / (1.0+(dV/(2.0*V0))) )
+				self.Concentrations[i][s] += self.Cell[s] * ( (1-(dV/(2.0*self.V0))) / (1.0+(dV/(2.0*self.V0))) )
 
-		# heat of dilution will be proportional to the difference in concentration between syringe solution and cell solutions
+		
 		self.dQ_dil = [0.0]*self.npoints
 		for i in range(self.npoints):
-			if i == 0:
-				self.dQ_dil[i] = (1.0 -self.dDQ_conc[i]) * self.Q_dil
-			else:
-				self.dQ_dil[i] = (1.0 -self.dDQ_conc[i] -self.dDQ_conc[i-1]) * self.Q_dil
+			
+			if self._USE_OLD_DILUTION_Q: # old heat of dilution calculation, based on syringe content
+				if i==0:
+					self.dQ_dil[i] = (self.V0/1E6)*(self.Concentrations[i][self.syringeRef])*self.Q_dil
+				else:
+					self.dQ_dil[i] = (self.V0/1E6)*(self.Concentrations[i][self.syringeRef]-self.Concentrations[i-1][self.syringeRef])*self.Q_dil
+			else: # heat of dilution will be proportional to the difference in concentration between syringe solution and cell solutions
+				if i == 0:
+					self.dQ_dil[i] = (1.0 -self.dDQ_conc[i]) * self.Q_dil
+				else:
+					self.dQ_dil[i] = (1.0 -self.dDQ_conc[i] -self.dDQ_conc[i-1]) * self.Q_dil
 
 		assert len(dQ) == self.npoints
 
@@ -159,13 +168,13 @@ class ITCExperimentBase:
 		ret+= "Cell components:\n"
 		for s in self.Cell:
 			ret+="\t%s (%.3E M)"%(s,self.Concentrations[0][s])
-			if s == self.Cell.keys()[0]:
+			if s == list(self.Cell.keys())[0]:
 				ret+=" (reference)"
 			ret+="\n"
 		ret+= "Syringe components:\n"
 		for s in self.Syringe:
 			ret+="\t%s (%.3E M)"%(s,self.Concentrations[0][s])
-			if s == self.Syringe.keys()[0]:
+			if s == list(self.Syringe.keys())[0]:
 				ret+=" (reference)"
 			ret+="\n"
 		return ret
@@ -182,7 +191,7 @@ class ITCExperimentBase:
 			
 		Returns
 		-------
-		None
+			None
 		
 		Notes
 		-----
@@ -406,7 +415,7 @@ class ITCExperimentBase:
 		return chisq
 		
 class ITCExperiment(ITCExperimentBase):
-	"""An object that encapsulates an empirical (i.e. "real") ITC experiment.
+	"""Provides splining for empirical ITC data.
 	
 	Attributes
 	----------
@@ -446,7 +455,7 @@ class ITCExperiment(ITCExperimentBase):
 		self.initialized = True
 
 class ITCExperimentSynthetic(ITCExperimentBase):
-	"""An object that encapsulates a synthetic (i.e. simulated) ITC experiment.
+	"""Provides the ability to save simulated data for display or re-fitting.
 	
 	Attributes
 	----------
