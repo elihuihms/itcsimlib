@@ -58,7 +58,11 @@ class ITCCalc(multiprocessing.Process):
 		"""
 		
 		# start the model
-		self.model.start()
+		try:
+			self.model.start()
+		except Exception as exc:
+			_type, _value, _traceback = sys.exc_info()
+			self.oQ.put( (None,traceback.format_exc()) )
 
 		# pull parameter,experiment tuple from the input queue, without blocking on an empty queue
 		for params,E in iter(self.iQ.get, None):
@@ -68,7 +72,6 @@ class ITCCalc(multiprocessing.Process):
 				Q = self.model.Q( self.T0, E.T, E.Concentrations )
 			except Exception as exc:
 				_type, _value, _traceback = sys.exc_info()
-				
 				self.oQ.put( (None,traceback.format_exc()) )
 			else:
 				self.oQ.put( (E.title,Q) )

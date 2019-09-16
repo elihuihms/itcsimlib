@@ -1,4 +1,4 @@
-"""Classes for optimizing model parameters to fit experimental data.
+"""Provides model parameter optimization to fit experimental data.
 
 
 """
@@ -69,10 +69,12 @@ class ITCFit:
 		return self._noisy_bisect(f, a, b, fa, fb, tolerance)
 		
 	def set_sim(self, sim):
+		"""Sets the simulator to use for fitting."""
 		self.sim = sim
 		self.model = self.sim.model
 		
 	def get_sim(self):
+		"""Returns the simulator used for fitting."""
 		return self.sim
 	
 	def add_bounds(self, param, low=None, high=None):
@@ -282,7 +284,7 @@ class ITCFit:
 			
 		return param_values
 				
-	def estimate_bootstrap(self, params=[], bootstraps=1000, randomize=0.1, callback=None, logfile=None ):
+	def estimate_bootstrap(self, params=[], bootstraps=100, randomize=0.1, callback=None, logfile=None ):
 		"""Generate confidence intervals for optimized parameters by bootstrapping (also known as jackknife estimation)
 
 		Arguments
@@ -300,7 +302,8 @@ class ITCFit:
 
 		Returns
 		-------
-			(dict of tuples): A parameter-name keyed dict of tuples consisting of the mean and standard deviation of the optimized values.
+		(dict of tuples)
+			A parameter-name keyed dict of tuples consisting of the mean and standard deviation of the optimized values.
 		"""
 
 		if self.verbose:
@@ -391,7 +394,7 @@ class ITCFit:
 				callback=callback,
 				**self.method_args)
 		elif self.method == 'powell':
-			opt = scipy.optimize.fmin_powell(
+			ret = scipy.optimize.fmin_powell(
 				func=func,
 				x0=x0,
 				args=(self.sim,),
@@ -399,7 +402,6 @@ class ITCFit:
 				full_output=True,
 				callback=callback,
 				**self.method_args)
-			ret = opt,func(opt[0],self.sim)
 		elif self.method == 'tnc':
 			opt = scipy.optimize.fmin_tnc(
 				func=func,

@@ -18,12 +18,12 @@ if LooseVersion(matplotlib.__version__) < LooseVersion("1.3"):
 	print("Error: itcsimlib requires matplotlib 1.3 or higher.")
 
 import sympy
-if LooseVersion(sympy.__version__) < LooseVersion("1.3"):
-	print("Error: itcsimlib requires matplotlib 1.3 or higher.")
+if LooseVersion(sympy.__version__) < LooseVersion("0.7"):
+	print("Error: itcsimlib requires sympy 0.7.0 or higher.")
 
 import pyx
-if LooseVersion(pyx.__version__) < LooseVersion("1.3"):
-	print("Error: itcsimlib requires matplotlib 1.3 or higher.")
+if LooseVersion(pyx.__version__) < LooseVersion("0.13"):
+	print("Error: itcsimlib requires pyx 0.13 or higher.")
 
 import itcsimlib
 
@@ -61,7 +61,7 @@ setup(
 	author				= itcsimlib.__author__,
 	author_email		= itcsimlib.__author_email__,
 	description			= u'itcsimlib: isothermal titration calorimetry simulation using statistical thermodynamics',
-	long_description	= open('README.txt').read(),
+	long_description	= u'itcsimlib uses statistical thermodynamics models to simulate and fit binding data, in particular those obtained from isothermal titration calorimetry (ITC).',
 	url					= u'https://github.com/elihuihms/itcsimlib',
 	download_url		= u'https://github.com/elihuihms/itcsimlib/archive/master.zip',
 	platforms			= 'any',
@@ -70,7 +70,7 @@ setup(
 		'Topic :: Scientific/Engineering :: Chemistry',
 		'Topic :: Scientific/Engineering :: Physics',
 		''
-		'Development Status :: 5 - Stable',
+		'Development Status :: 4 - Beta',
 		'Intended Audience :: Science/Research',
 		'License :: OSI Approved :: GNU General Public License v2 (GPLv2)'
 	],

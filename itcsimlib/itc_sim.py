@@ -1,4 +1,4 @@
-"""Classes for simulating/fitting experimental data with binding models.
+"""Essential simulator for generating or fitting data with binding models.
 
 
 """

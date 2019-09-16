@@ -1,4 +1,4 @@
-"""Classes to discretely sample (i.e. grid) model parameters to aid in model parameter optimization.
+"""Provides discrete sample parameter values selection during data fitting.
 
 
 """

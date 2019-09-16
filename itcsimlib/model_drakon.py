@@ -8,23 +8,11 @@ from .model_ising import Ising
 
 
 class DRAKONIsingModel(Ising):
-	"""A wrapper/simplification interface for an Ising model for use in DRAKON flow diagram-based models.
-	
-	Attributes
-	----------
-	None
-	"""
+	"""A wrapper/simplification interface for an Ising model for use in DRAKON flow diagram-based models."""
 	
 	def setup(self):
+		"""Runs any necessary setup actions prior to execution. Valid child models should overwrite this."""
 		raise NotImplementedError("Valid DRAKON models must implement this method")
-	
-	"""
-	def site(self, i, j ):
-		raise NotImplementedError("Valid DRAKON models must implement site() or config()")
-		
-	def configuration(self, *args):
-		raise NotImplementedError("Valid DRAKON models must implement site() or config()")
-	"""
 	
 	def __init__(self):
 		"""Constructor for the model.
@@ -38,6 +26,9 @@ class DRAKONIsingModel(Ising):
 		self.occupied = self.get_site_occupancy
 		self.neighbor = self.get_site_occupancy
 		self.set_parameter = self.set_param
+
+		if not (getattr(self, "site", False) or getattr(self, "configuration")):
+			raise NotImplementedError("Valid DRAKON models must include a site() or config() method.")
 		
 		self.setup()
 
@@ -45,7 +36,7 @@ class DRAKONIsingModel(Ising):
 	
 	def initialize(self, *args, **kwargs):
 		"""Alias for the parent class constructor, used to explicity call init in DRAKON.
-		See the Ising.__init__() method for the argument list.
+		See the Ising parent __init__() method for the argument list.
 		"""
 		
 		Ising.__init__(self, *args, **kwargs)
@@ -53,10 +44,12 @@ class DRAKONIsingModel(Ising):
 	def add_parameter(self, name, type, **kwargs):
 		"""Alias for the ITCModel add_parameter() method. This method also adds the parameter to the class attributes.
 		
-		See the ITCModel.add_parameter() method for the argument list.
+		See the ITCModel parent method for the argument list.
 		
-		Note that it's usually bad practice to pollute the namespace with random attributes.
-		Here, it's a calculated risk for more grokable DRAKON diagrams."""
+		Notes
+		-----
+			It's usually bad practice to pollute the namespace with random attributes, but here it's a calculated risk for more grokable DRAKON diagrams.
+		"""
 		
 		if getattr(self, name, "unassigned") != "unassigned":
 			raise Exception("The parameter name \"%s\" is already used in this class."%(args[0]))
@@ -120,7 +113,7 @@ class DRAKONIsingModel(Ising):
 	def add_dG(self, i, dG, dH=None, dCp=None):
 		"""Convenience function for DRAKON models to increment the gibbs free energy of a configuration.
 		This function also permits temperature-dependent van't Hoff correction, if dH and dCp are not None.
-		Alternatively, an expression consisting of existing model parameters may be provided for each argument, but this will result in slow model evaluation as the expression will need to be eval()'d for every configuration. 
+		Alternatively, an expression consisting of existing model parameters may be provided for each argument, but this will result in (even slower) model evaluation as the expression will need to be eval()'d for every configuration. 
 		
 		Arguments
 		---------
@@ -171,7 +164,7 @@ class DRAKONIsingModel(Ising):
 	def add_dH(self, i, dH, dCp=None):
 		"""Convenience function for DRAKON models to increment the enthalpy of a configuration.
 		This function permits temperature-dependent van't Hoff correction, if dCp is not None.
-		Alternatively, an expression consisting of existing model parameters may be provided, but this may result in slow model execution, as the expression will need to be eval()'d for every configuration. 
+		Alternatively, an expression consisting of existing model parameters may be provided, but this may result in (even slower) model execution, as the expression will need to be eval()'d for every configuration. 
 
 		Arguments
 		---------

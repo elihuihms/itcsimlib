@@ -1,4 +1,4 @@
-"""Classes for extending itcsimlib to fit mass spectrometry data.
+"""Extension of Ising classes for fitting mass spectrometry data.
 
 
 """
