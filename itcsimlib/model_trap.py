@@ -5,8 +5,9 @@ Using compiled DLLs typically provides an order-of-magnitude increase or better 
 """
 
 import os
-import scipy
+import glob
 import ctypes
+import scipy
 
 from .itc_model	import ITCModel
 from .thermo	import *
@@ -28,11 +29,11 @@ class TRAP_DLL_Model(ITCModel):
 		
 		self.nsites,self.circular = 11,1
 
-		self._lib = None
-		self._path = os.path.join( os.path.dirname(__file__), self.libpath )
-
-		if not os.path.exists(self._path):
+		match = glob.glob( os.path.join( os.path.dirname(__file__), self.libpath+"*.so" ) )
+		if len(match) == 0 or len(match) > 1:
 			raise ImportError("Could not import shared library path at \"%s\"."%self._path)
+		self._path = match[0]
+		self._lib = None
 
 		# Dry run to attempt to load the library.
 		self.start()
@@ -112,7 +113,7 @@ class SK(TRAP_DLL_Model):
 		The parameters dG, dGa, and dBa (and their enthalpic and heat capacity counterparts) are correlated and should not be fit simultaneously, as described in Ihms. et al., Biophysical Journal (2017), 
 	"""
 
-	libpath = 'model_trap_sk.so'
+	libpath = 'model_trap_sk'
 
 	def __init__(self):
 		TRAP_DLL_Model.__init__(self)
@@ -144,7 +145,7 @@ class IK(TRAP_DLL_Model):
 	A nine-parameter model describing the generalized Kleckner (non-additive) model of binding.
 	"""
 
-	libpath = 'model_trap_ik.so'
+	libpath = 'model_trap_ik'
 
 	def __init__(self):
 		TRAP_DLL_Model.__init__(self)
@@ -176,7 +177,7 @@ class IKi(TRAP_DLL_Model):
 	A nine-parameter model describing the Kleckner (non-additive) model, expressed using an intrinsic binding coeffcient.
 	"""
 
-	libpath = 'model_trap_ik.so'
+	libpath = 'model_trap_ik'
 
 	def __init__(self):
 		TRAP_DLL_Model.__init__(self)
@@ -208,7 +209,7 @@ class SKa(TRAP_DLL_Model):
 	A six-parameter model describing the additive 1997 Saroff-Kiefer model, using an intrinsic binding coefficient to remove correlated terms.
 	"""
 
-	libpath = 'model_trap_ik.so'
+	libpath = 'model_trap_ik'
 
 	def __init__(self):
 		TRAP_DLL_Model.__init__(self)
