@@ -5,9 +5,11 @@ if sys.version_info < (3, 0, 0):
 	sys.stderr.write("Error: itcsimlib requires Python 3.0 or newer.\n")
 	sys.exit(-1)
 
-from distutils.core import setup, Extension
+from setuptools import setup
+from distutils.core import Extension
 from distutils.version import LooseVersion
 from distutils.command import build
+from distutils.cmd import Command
 
 import scipy
 if LooseVersion(scipy.__version__) < LooseVersion("0.11"):
@@ -53,6 +55,22 @@ class check_c_build(build.build):
 		if self.build_c_models :
 			self.distribution.ext_modules = [model_sk,model_ik,model_nn]
 		build.build.run(self, *args, **kwargs)
+
+class run_tests(Command):
+	user_options = []
+
+	def initialize_options(self):
+		pass
+
+	def finalize_options(self):
+		pass
+
+	def run(self):
+		import subprocess
+		raise SystemExit( subprocess.call([
+			sys.executable,
+			os.path.join( os.path.dirname(os.path.abspath(__file__)), "test" ),
+		]))
 		
 setup(
 	name				= 'itcsimlib',
@@ -78,5 +96,6 @@ setup(
 	ext_modules = [],
 	cmdclass={
 		'build':check_c_build,
+		'test':run_tests,
 	},
 )

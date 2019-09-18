@@ -31,6 +31,7 @@ __pycache__/
 build/
 dist/
 MANIFEST
+itcsimlib.egg-info
 
 # MacOS garbage
 .DS_Store
