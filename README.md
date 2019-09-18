@@ -7,7 +7,9 @@ itcsimlib is python module that uses statistical thermodynamics models to simula
 
 Note: itcsimlib doesn't possess a GUI. You will need to write scripts in Python that make use of itcsimlib classes, in a manner that users of [XPLOR-NIH](https://nmr.cit.nih.gov/xplor-nih/) and other programmatic analysis tools will find quite familiar. 
 
-If you're not familiar with Python, the provided Jupyter notebooks and scripts in the tutorial and examples directories should give you off to a good start. Although itcsimlib comes with several binding models that may fit your data, to really leverage itcsimlib you'll want to write your own models. You may want to try [itcsimlib-blockly](https://github.com/elihuihms/itcsimlib-blockly), which uses Google's [Blockly](https://developers.google.com/blockly/) visual programming language to build statistical thermodynamics models that work with itcsimlib.
+Full instructions for getting started via tutorials, API documentation, and advanced examples can be found at https://itcsimlib.readthedocs.io/
+
+Although itcsimlib comes with several binding models that may fit your data, you'll eventually want to write your own. You may want to try out [itcsimlib-blockly](https://github.com/elihuihms/itcsimlib-blockly), which uses Google's [Blockly](https://developers.google.com/blockly/) visual programming language to build itcsimlib statistical thermodynamics models.
 
 If at any point you need help, have constructive criticism, or wish to contribute some of your own ideas or models to itcsimlib, please contact the author at mail@elihuihms.com.
 
