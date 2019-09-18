@@ -1,9 +1,9 @@
 itcsimlib
 =========
 
-itcsimlib is uses statistical thermodynamics (ST) models to simulate and fit binding data, in particular those obtained from isothermal titration calorimetry (ITC). Because statistical thermodynamics models can calculate the prevalence of individual lattice+ligand configurations, itcsimlib can be readily adapted to fit mass spectrometry data as well.
+itcsimlib uses statistical thermodynamics (ST) models to simulate and fit binding data, in particular those obtained from isothermal titration calorimetry (ITC). Because statistical thermodynamics models can calculate the prevalence of individual lattice+ligand configurations, itcsimlib can be readily adapted to fit mass spectrometry data as well.
 
-itcsimlib also provides a number of tools for understanding / analyzing Ising ST models that may be of general interest to those studing complex binding mechanics. These include automated generation of partition functions and figures depicting lattice + ligand configuration with their degeneracies.
+itcsimlib also provides a number of tools for understanding / analyzing Ising ST models that may be of general interest to those studing complex binding processes. These include automated generation of partition functions and figures depicting lattice + ligand configuration with their degeneracies.
 
 Getting Started
 ===============
