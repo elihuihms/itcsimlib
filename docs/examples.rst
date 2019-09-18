@@ -5,7 +5,9 @@
 Example Scripts
 ---------------
 
-These examples provide a number of real-life applications of itcsimlib or show off specialized usage that may not be covered in the :ref:`itcsimlib-tutorial`.
+These examples provide a number of real-life applications of itcsimlib or show off specialized usage that may not be covered in the :ref:`itcsimlib-tutorial`. The author can provide no assurances regarding their quality or suitability.
+
+Note that the `examples/data` directory contains the six experimental TRAP+Tryptophan titrations used in the author’s 2017 Biophysical Journal paper, and provide a good example of the file format itcsimlib uses.
 
 `dilution.py <https://github.com/elihuihms/itcsimlib/blob/master/examples/dilution.py>`_
 	Provides an example of a brute force method to estimate heat-of-dilutions in the case of poor baseline control. Should be used as a last resort, and not recommended for poorly-constrained models.
