@@ -34,12 +34,12 @@ class Hemoglobin4P(Ising):
 		dH3 = dH_vant_Hoff( self.params['dH3'], self.params['dCp3'], T, T0 )
 		dH4 = dH_vant_Hoff( self.params['dH4'], self.params['dCp4'], T, T0 )
 		
-		for i in xrange(self.nconfigs):
+		for i in range(self.nconfigs):
 			self.gibbs[i],self.enthalpies[i] = 0.0,0.0
 			self.config_expressions[i] = 0
 			
 			bound = 0 # for this config, how many bound ligands?
-			for j in xrange(self.nsites):
+			for j in range(self.nsites):
 				if self.get_site_occupancy(i,j):
 					bound +=1
 			
@@ -85,11 +85,11 @@ class Hemoglobin3P(Ising):
 		dHa = dH_vant_Hoff( self.params['dHa'], self.params['dCpa'], T, T0 )
 		dHb = dH_vant_Hoff( self.params['dHb'], self.params['dCpb'], T, T0 )
 		
-		for i in xrange(self.nconfigs):
+		for i in range(self.nconfigs):
 			self.gibbs[i],self.enthalpies[i] = 0.0,0.0
 			self.config_expressions[i] = 0
 			
-			for j in xrange(self.nsites):
+			for j in range(self.nsites):
 
 				if self.get_site_occupancy(i,j): # is the site occupied?
 					self.gibbs[i] += dG0
@@ -135,11 +135,11 @@ class Hemoglobin2P(Ising):
 		dH0 = dH_vant_Hoff( self.params['dH0'], self.params['dCp0'], T, T0 )
 		dHb = dH_vant_Hoff( self.params['dHb'], self.params['dCpb'], T, T0 )
 		
-		for i in xrange(self.nconfigs):
+		for i in range(self.nconfigs):
 			self.gibbs[i],self.enthalpies[i] = 0.0,0.0
 			self.config_expressions[i] = 0
 			
-			for j in xrange(self.nsites):
+			for j in range(self.nsites):
 
 				if self.get_site_occupancy(i,j): # is the site occupied?
 					self.gibbs[i] += dG0

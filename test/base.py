@@ -12,7 +12,9 @@ try:
 except ImportError:
 	sys.path.append(os.path.abspath(".."))
 	from itcsimlib import *
+
 from itcsimlib.utilities import *
+
 
 def get_test_data(filename):
 	path = os.path.dirname(os.path.abspath(__file__)) # ../itcsimlib/test
@@ -27,7 +29,7 @@ class TestITCBase(unittest.TestCase):
 		if clean:
 			shutil.rmtree(self.test_dir)
 		else:
-			print "Temporary file path: %s"%self.test_dir
+			print("Temporary file path: %s"%self.test_dir)
 		
 	def getFilePath(self,new=False):
 		if new:
@@ -67,7 +69,7 @@ class TestITCExperiment(TestITCBase):
 		from itcsimlib.itc_experiment import ITCExperiment
 		E = read_itcsimlib_exp(get_test_data('base_1.txt'))
 		Q = [0.0]*E.injections
-		self.assertEqual( round(E.get_chisq(Q),1), 679.8 )
+		self.assertEqual( round(E.get_chisq(Q),1), 691.5 )
 
 class TestITCSIM(TestITCBase):
 	def setUp(self):
@@ -141,19 +143,19 @@ class TestITCFit(TestITCSIM):
 	
 	def test_fit_optimize_simplex(self):
 		fit = ITCFit( self.sim, method='simplex', method_args={"maxiter":1} )
-		self.assertEqual( round(fit.optimize(params=['n','dG','dH'])[1],3), 2.665 )
+		self.assertEqual( round(fit.optimize(params=['n','dG','dH'])[1],3), 2.695 )
 	
 	def test_fit_optimize_powell(self):
 		fit = ITCFit( self.sim, method='powell', method_args={"maxiter":1} )
-		self.assertEqual( round(fit.optimize(params=['n','dG','dH'])[1],3), 2.665 )
+		self.assertEqual( round(fit.optimize(params=['n','dG','dH'])[1],3), 2.695 )
 
 	def test_fit_optimize_tnc(self):
 		fit = ITCFit( self.sim, method='tnc', method_args={"maxfun":1} )
-		self.assertEqual( round(fit.optimize(params=['n','dG','dH'])[1],3), 2.665 )
+		self.assertEqual( round(fit.optimize(params=['n','dG','dH'])[1],3), 2.695 )
 	
 	def test_fit_optimize_bfgs(self):
 		fit = ITCFit( self.sim, method='bfgs', method_args={"maxiter":1} )
-		self.assertEqual( round(fit.optimize(params=['n','dG','dH'])[1],3), 2.665 )
+		self.assertEqual( round(fit.optimize(params=['n','dG','dH'])[1],3), 2.695 )
 
 	def test_fit_estimate_bootstrap_(self):
 		fit = ITCFit( self.sim, method='simplex', method_args={"maxiter":1} )

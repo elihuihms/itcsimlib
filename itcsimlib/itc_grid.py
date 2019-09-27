@@ -1,4 +1,10 @@
+"""Provides discrete sample parameter values selection during data fitting.
+
+
+"""
+
 import scipy
+
 
 class ITCGrid:
 	"""A class for either discretely spacing parameters either for different starting conditions or holding them fixed during optimization.
@@ -114,7 +120,7 @@ class ITCGrid:
 	def _get_point(self, index):
 		gridpt = []
 		for i in range(len(self._grid_pts)):
-			gridpt.append( self._grid_pts[i][ index % len(self._grid_pts[i]) ] )
+			gridpt.append( self._grid_pts[i][ int(index % len(self._grid_pts[i])) ] )
 			index /= len(self._grid_pts[i])
 
 		return gridpt
@@ -138,7 +144,7 @@ class ITCGrid:
 		assert self._grid_size > 1
 
 		if self.verbose:
-			print "\nitc_grid: Optimizing %s parameters over %i grid points of %s parameters\n"%(",".join(params),self._grid_size,",".join(self._grid_order))
+			print("\nitc_grid: Optimizing %s parameters over %i grid points of %s parameters\n"%(",".join(params),self._grid_size,",".join(self._grid_order)))
 
 		# archive original model params
 		start_params = self.sim.get_model_params().copy()
@@ -150,7 +156,7 @@ class ITCGrid:
 		if self._end_index == None:
 			self._end_index = self._grid_size
 
-		for i in xrange(self._start_index, self._end_index):
+		for i in range(self._start_index, self._end_index):
 			point = self._get_point(i)
 
 			# reset starting model params
@@ -162,7 +168,7 @@ class ITCGrid:
 			try:
 				self._grid_results[i] = (point,)+self.fit.optimize( params=params, **kwargs )
 			except Exception as e:
-				print "itc_grid: Error, caught exception at grid point index %i: %s"%(i,str(e))
+				print("itc_grid: Error, caught exception at grid point index %i: %s"%(i,str(e)))
 				continue
 
 			if self.callback != None:

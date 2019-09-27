@@ -1,14 +1,17 @@
+"""Provides model parameter optimization to fit experimental data.
+
+
+"""
+
 import random
 import scipy
 import scipy.optimize
 
-from thermo		import *
-from utilities	import *
+from collections import OrderedDict
 
-try:
-	_tmp = OrderedDict()
-except:
-	from ordered_dict	import OrderedDict
+from .thermo	import *
+from .utilities	import *
+
 
 class ITCFit:
 	"""A class for optimizing model parameters to accurately fit experimental data.
@@ -66,10 +69,12 @@ class ITCFit:
 		return self._noisy_bisect(f, a, b, fa, fb, tolerance)
 		
 	def set_sim(self, sim):
+		"""Sets the simulator to use for fitting."""
 		self.sim = sim
 		self.model = self.sim.model
 		
 	def get_sim(self):
+		"""Returns the simulator used for fitting."""
 		return self.sim
 	
 	def add_bounds(self, param, low=None, high=None):
@@ -115,9 +120,9 @@ class ITCFit:
 		"""
 
 		if self.verbose:
-			print "\nitc_fit: Optimizing %s parameters using the %s algorithm\n"%(",".join(params),self.method)
+			print("\nitc_fit: Optimizing %s parameters using the %s algorithm\n"%(",".join(params),self.method))
 			def _printer(x):
-				print "itc_fit: %s (%f)" %(" ".join(map(str,x)),self.sim.chisq)
+				print("itc_fit: %s (%f)" %(" ".join(map(str,x)),self.sim.chisq))
 		else:
 			def _printer(x):
 				return
@@ -226,7 +231,7 @@ class ITCFit:
 			param_values[p] = [None,None]
 
 			if params_opt == None: # get the model parameters that are to be optimized while the param "p" is gridded
-				params_opt = self.sim.get_model_params().keys()
+				params_opt = list(self.sim.get_model_params().keys())
 
 			try: # remove the parameter to be held constant from the list of those to be optimized
 				params_opt.remove(p)
@@ -244,7 +249,7 @@ class ITCFit:
 			while chisq_diff > 0: # if necessary, decrease the fixed parameter value until we've exceeded the critical chisq
 				estimate_counter = estimate_counter + estimate
 				if self.verbose:
-					print "itc_fit: Lower guess (%f) for parameter \"%s\" is insufficient (%f from critical chisq). Decreasing parameter value to %f." % (param_values[p][0],p,chisq_diff,model_params[p] * (1.0-estimate_counter))
+					print("itc_fit: Lower guess (%f) for parameter \"%s\" is insufficient (%f from critical chisq). Decreasing parameter value to %f." % (param_values[p][0],p,chisq_diff,model_params[p] * (1.0-estimate_counter)))
 				param_values[p][0] = model_params[p] * (1.0-estimate_counter)
 				chisq_diff = target_function( param_values[p][0] )
 			
@@ -261,7 +266,7 @@ class ITCFit:
 			while chisq_diff > 0: # if necessary, increase the fixed parameter value until we've exceeded the critical chisq
 				estimate_counter = estimate_counter + estimate
 				if self.verbose:
-					print "itc_fit: Upper guess (%f) for parameter \"%s\" is insufficient (%f from critical chisq). Increasing parameter value to %f." % (param_values[p][1],p,chisq_diff,model_params[p] * (1.0+estimate_counter))
+					print("itc_fit: Upper guess (%f) for parameter \"%s\" is insufficient (%f from critical chisq). Increasing parameter value to %f." % (param_values[p][1],p,chisq_diff,model_params[p] * (1.0+estimate_counter)))
 				param_values[p][1] = model_params[p] * (1.0+estimate_counter)
 				chisq_diff = target_function( param_values[p][1] )
 			
@@ -279,7 +284,7 @@ class ITCFit:
 			
 		return param_values
 				
-	def estimate_bootstrap(self, params=[], bootstraps=1000, randomize=0.1, callback=None, logfile=None ):
+	def estimate_bootstrap(self, params=[], bootstraps=100, randomize=0.1, callback=None, logfile=None ):
 		"""Generate confidence intervals for optimized parameters by bootstrapping (also known as jackknife estimation)
 
 		Arguments
@@ -297,11 +302,12 @@ class ITCFit:
 
 		Returns
 		-------
-			(dict of tuples): A parameter-name keyed dict of tuples consisting of the mean and standard deviation of the optimized values.
+		(dict of tuples)
+			A parameter-name keyed dict of tuples consisting of the mean and standard deviation of the optimized values.
 		"""
 
 		if self.verbose:
-			print "\nitc_fit: Estimating uncertainty intervals for %s using %i bootstraps\n"%(",".join(params),bootstraps)
+			print("\nitc_fit: Estimating uncertainty intervals for %s using %i bootstraps\n"%(",".join(params),bootstraps))
 
 		# initialize to make sure we have fit data to use
 		self.sim.run()
@@ -318,13 +324,13 @@ class ITCFit:
 
 		# generates a synthetic dataset from the fit and fit residuals
 		def _make_bootstrap(n,exp,fit):
-			res = [ exp[i]-fit[i] for i in xrange(n) ]
+			res = [ exp[i]-fit[i] for i in range(n) ]
 			return [ f + random.choice(res) for f in exp ]
 
 		param_values = OrderedDict( (p,[]) for p in params )
-		for i in xrange(bootstraps):
+		for i in range(bootstraps):
 			if self.verbose:
-				print "itc_fit: Bootstrap %i"%(i)
+				print("itc_fit: Bootstrap %i"%(i))
 
 			# randomize starting point by user-specifiable amount
 			for p in params:
@@ -360,18 +366,18 @@ class ITCFit:
 
 	def _apply_bounds(self):
 		ret = 0
-		for k,v in self.sim.get_model_params().iteritems():
+		for k,v in self.sim.get_model_params().items():
 			if self.bounds[k][0] != None and v < self.bounds[k][0]:
 				self.sim.set_model_param(k, self.bounds[k][0])
 				ret += scipy.fabs((self.bounds[k][0] - v) / self.bounds[k][0])
 				if self.verbose:
-					print "itc_fit: Boundary violation for \"%s\" (%f<%f)"%(k,v,self.bounds[k][0])
+					print("itc_fit: Boundary violation for \"%s\" (%f<%f)"%(k,v,self.bounds[k][0]))
 
 			elif self.bounds[k][1] != None and v > self.bounds[k][1]:
 				self.sim.set_model_param(k, self.bounds[k][1])
 				ret += fabs((v - self.bounds[k][1]) / self.bounds[k][1])			
 				if self.verbose:
-					print "itc_fit: Boundary violation for \"%s\" (%f>%f)"%(k,v,self.bounds[k][1])
+					print("itc_fit: Boundary violation for \"%s\" (%f>%f)"%(k,v,self.bounds[k][1]))
 
 		return ret
 
@@ -388,7 +394,7 @@ class ITCFit:
 				callback=callback,
 				**self.method_args)
 		elif self.method == 'powell':
-			opt = scipy.optimize.fmin_powell(
+			ret = scipy.optimize.fmin_powell(
 				func=func,
 				x0=x0,
 				args=(self.sim,),
@@ -396,7 +402,6 @@ class ITCFit:
 				full_output=True,
 				callback=callback,
 				**self.method_args)
-			ret = opt,func(opt[0],self.sim)
 		elif self.method == 'tnc':
 			opt = scipy.optimize.fmin_tnc(
 				func=func,

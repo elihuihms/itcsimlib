@@ -1,4 +1,10 @@
+"""Basic thermodynamic transform/conversion functions.
+
+
+"""
+
 import math
+
 
 _R = 8.3144621 # J/(K*mol)
 _UNITS = ('J','kJ','cal','kcal')
@@ -156,7 +162,7 @@ def get_ratios( A, B ):
 	n = len(A)
 	assert( n == len(B) )
 	ret = [0.0]*n
-	for i in xrange(n):
+	for i in range(n):
 		ret[i] = A[i] / B[i]
 	return ret
 
@@ -200,14 +206,14 @@ def normalize( A, B ):
 	# calculate root mean square for each dataset
 	A_avg, B_avg = sum(A)/n, sum(B)/n
 	A_rms, B_rms = 0.0, 0.0
-	for i in xrange(n):
+	for i in range(n):
 		A_rms += (A[i] - A_avg)**2
 		B_rms += (B[i] - B_avg)**2
 	A_rms, B_rms = math.sqrt(A_rms/n), math.sqrt(B_rms/n)
 
 	# translate B data to origin, normalize scale, then transform back using data to be normalized to
 	B_norm = [0.0]*n
-	for i in xrange(n):
+	for i in range(n):
 		B_norm[i] = (A_rms*(B[i] - B_avg)/B_rms) + A_avg
 
 	return B_norm

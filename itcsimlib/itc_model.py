@@ -1,10 +1,13 @@
-from thermo import *
-from thermo import _UNITS
+"""Basic itcsimlib model class.
 
-try:
-	_tmp = OrderedDict()
-except:
-	from ordered_dict	import OrderedDict
+
+"""
+
+from collections import OrderedDict
+
+from .thermo import *
+from .thermo import _UNITS
+
 
 class ITCModel():
 	"""A base class that serves as the foundation for generation of per-injection binding enthalpies
@@ -17,10 +20,6 @@ class ITCModel():
 		The parameters of the model
 	components : list of strings
 		The names of the components that are involved in the binding model (e.g. the lattice/macromolecule and ligand)
-	_param_meta : dict of tuples
-		A storage variable that contains the current value and meta information for each model parameter
-	_component_meta : dict of tuples
-		A storage variable that contains information for each model component
 	lattice_name : string
 		The name of the binding component (for binary systems)
 	ligand_name : string
@@ -197,10 +196,13 @@ class ITCModel():
 			To prevent confusion, when setting parameter values positionally, all model values must be specified (in the correct order of course).
 		"""
 		
-		for i in xrange(len(args)):
+		param_names = list( self.params.keys() )
+
+		for i in range(len(args)):
 			assert len(args) == len(self.params)
-			self.set_param( self.params.keys()[i], args[i] )
-		for k,v in kwargs.iteritems():
+			self.set_param( param_names[i], args[i] )
+		
+		for k,v in kwargs.items():
 			self.set_param( k, v )
 
 	# getters

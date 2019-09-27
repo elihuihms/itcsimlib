@@ -1,10 +1,16 @@
+"""Extension of Ising classes for fitting mass spectrometry data.
+
+
+"""
+
 import os
 import sys
 import scipy
 import uuid
 
-from itc_experiment import ITCExperimentBase
-from model_ising import Ising
+from .itc_experiment import ITCExperimentBase
+from .model_ising import Ising
+
 
 _MATPLOTLIB_BACKEND = None #None for default
 _FILE_COMMENT = ["#"]
@@ -116,7 +122,7 @@ class MSExperiment(ITCExperimentBase):
 					raise Exception("Found malformed titration point (inconsistent number of columns) at line %i"%(i+1))
 				
 				try:
-					tmp = map(float,arr)
+					tmp = list(map(float,arr))
 				except ValueError:
 					raise Exception("Found malformed titration point (could not convert column values to floats) at line %i"%(i+1))
 
@@ -138,17 +144,17 @@ class MSExperiment(ITCExperimentBase):
 		if keypairs['Error'] is None:
 			try:
 				assert self.npoints % 2 == 0
-				assert min(data[self.npoints/2:]) > 0.0
+				assert min(data[int(self.npoints/2):]) > 0.0
 			except AssertionError:
 				raise Exception("If sigma == None, must provide nonzero experimental uncertainties in the experimental file.")
 				
-			self.npoints /= 2 # first half of points matrix are experimental values, second half are uncertainties
+			self.npoints = int(self.npoints/2) # first half of points matrix are experimental values, second half are uncertainties
 			self.Concentrations = self.Concentrations[:self.npoints] # discard the duplicated concentration columns for sigmas
-			self.PopIntens = scipy.array(data[:self.npoints]).reshape((self.npoints/self.npops,self.npops))
-			self.PopSigmas = scipy.array(data[self.npoints:]).reshape((self.npoints/self.npops,self.npops))
+			self.PopIntens = scipy.array(data[:self.npoints]).reshape((int(self.npoints/self.npops),self.npops))
+			self.PopSigmas = scipy.array(data[self.npoints:]).reshape((int(self.npoints/self.npops),self.npops))
 		else:
 			self.sigma = keypairs['Error']
-			self.PopIntens = scipy.array(data).reshape((self.npoints/self.npops,self.npops))
+			self.PopIntens = scipy.array(data).reshape((int(self.npoints/self.npops),self.npops))
 			self.PopSigmas = scipy.full(self.PopIntens.shape,self.sigma)
 
 		# normalize intensities to 1, accordingly scale their sigmas
@@ -224,19 +230,19 @@ class MSExperiment(ITCExperimentBase):
 		ax2 = pyplot.subplot(3,1,2)
 		ax3 = pyplot.subplot(3,1,3)
 
-		x_points = self.npoints/self.npops
+		x_points = int(self.npoints/self.npops)
 
 		xax_positions,xax_labels = [],[]
 		width,space,left = 0.25,0.5,0.0
-		for i in xrange(self.npops):
-			bars1 = ax1.bar( [left + (j*width) for j in xrange(x_points)], [self.PopIntens[j][i] for j in xrange(x_points)], width=width, edgecolor='r' )
-			bars2 = ax2.bar( [left + (j*width) for j in xrange(x_points)], [self.PopFits[j][i] for j in xrange(x_points)], width=width, edgecolor='r' )
-			bars3 = ax3.bar( [left + (j*width) for j in xrange(x_points)], [self.PopIntens[j][i] - self.PopFits[j][i] for j in xrange(x_points)], width=width, edgecolor='r' )
+		for i in range(self.npops):
+			bars1 = ax1.bar( [left + (j*width) for j in range(x_points)], [self.PopIntens[j][i] for j in range(x_points)], width=width, edgecolor='r' )
+			bars2 = ax2.bar( [left + (j*width) for j in range(x_points)], [self.PopFits[j][i] for j in range(x_points)], width=width, edgecolor='r' )
+			bars3 = ax3.bar( [left + (j*width) for j in range(x_points)], [self.PopIntens[j][i] - self.PopFits[j][i] for j in range(x_points)], width=width, edgecolor='r' )
 			xax_positions.append( left + (x_points*width)/2.0 )
 			xax_labels.append("%i"%i)
 			left += (x_points*width)+space
 	
-			for j in xrange(x_points):
+			for j in range(x_points):
 				color = 1.0 - (float(j) / x_points)
 				bars1[j].set_color( (color, color, 1) )	
 				bars2[j].set_color( (color, 1, color) )	
@@ -282,7 +288,7 @@ class MSExperiment(ITCExperimentBase):
 		ax = Axes3D(fig)
 #		ax = fig.add_subplot(1, 1, 1, projection='3d') matplotlib version issue
 
-		xs = range(self.npoints / self.npops) # number of concentrations
+		xs = range(int(self.npoints / self.npops)) # number of concentrations
 		for i in range(self.npops): # iterating over each configuration 
 
 			ys_fit = scipy.array([pop[i] for pop in self.PopFits])
@@ -327,14 +333,14 @@ class MSExperiment(ITCExperimentBase):
 		
 		fh.write("# %s"%self.title)
 		fh.write("# Experimental data\n")
-		for i in xrange(self.npoints/self.npops):
+		for i in range(int(self.npoints/self.npops)):
 			fh.write("%0.3E\t%0.3E\t%s\n" % (
 				self.Concentrations[i][self.lattice_name],
 				self.Concentrations[i][self.ligand_name],
 				"\t".join(["%f"%f for f in self.PopIntens[i]])))
 
 		fh.write("# Fitted data\n")
-		for i in xrange(self.npoints/self.npops):
+		for i in range(int(self.npoints/self.npops)):
 			fh.write("%0.3E\t%0.3E\t%s\n" % (
 				self.Concentrations[i][self.lattice_name],
 				self.Concentrations[i][self.ligand_name],
@@ -411,7 +417,7 @@ class MSExperimentSynthetic(MSExperiment):
 		ITCExperimentBase.__init__(self, T, V0, injections, dQ, Cell, Syringe, title=self.title)
 
 		# reset key attributes now
-		self.Concentrations = [{self.lattice_name:lattice_concs[i],self.ligand_name:ligand_concs[i]} for i in xrange(len(lattice_concs))]
+		self.Concentrations = [{self.lattice_name:lattice_concs[i],self.ligand_name:ligand_concs[i]} for i in range(len(lattice_concs))]
 
 		self.initialized = False
 		self.chisq = None
@@ -496,7 +502,7 @@ class MSModel(Ising):
 			self.model.set_probabilities(c[self.lattice_name],c[self.ligand_name],T)
 			
 			# for each stoichiometry, add up the configuration weights
-			for j in xrange(self.model.nconfigs):
+			for j in range(self.model.nconfigs):
 				ret[i][self.model.bound[j]] += self.model.weights[j]
 
 		return ret

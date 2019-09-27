@@ -6,7 +6,7 @@ import os
 try:
 	import itcsimlib
 except ImportError:
-	sys.path.append(os.path.abspath(".."))
+	sys.path.append(os.path.abspath("."))
 
 from base import *
 from model import *

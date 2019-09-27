@@ -31,9 +31,19 @@ __pycache__/
 build/
 dist/
 MANIFEST
+itcsimlib.egg-info
 
 # MacOS garbage
 .DS_Store
 
+# Sphinx build dirs
+docs/_build
+docs/_static
+docs/_templates
+
 # Jupyter notebook checkpoints
 *-checkpoint.ipynb
+
+# Development / testing directories
+/dev
+/deprecated

@@ -3,29 +3,29 @@
 
 # Introduction
 
-itcsimlib is python module that focuses (although not exclusively) on the use of statistical thermodynamics models to simulate, fit, and otherwise interpret isothermal titration calorimetry (ITC) data. Because statistical thermodynamics models individually simulate the prevalence of lattice+ligand configurations, itcsimlib can also be readily extended to fit mass spectrometry data.
+itcsimlib is python module that uses statistical thermodynamics models to simulate and fit binding data, in particular those obtained from isothermal titration calorimetry (ITC). Because statistical thermodynamics models can calculate the prevalence of individual lattice+ligand configurations, itcsimlib can be readily adapted to fit mass spectrometry data.
 
-Note: itcsimlib doesn't possess a GUI. You will need to write scripts in Python that make use of itcsimlib classes. Users of XPLOR and other programmatic analysis tools will find this quite familiar.
+Note: itcsimlib doesn't possess a GUI. You will need to write scripts in Python that make use of itcsimlib classes, in a manner that users of [XPLOR-NIH](https://nmr.cit.nih.gov/xplor-nih/) and other programmatic analysis tools will find quite familiar. 
 
-If you're not familiar with Python specifically, don't worry! The provided scripts (in the tutorial and examples directories) should give you a good introduction. However, if you have absolutely no programming background at all, you may want to try out one of the many introduction to Python tutorials available on the web.
+Full instructions for getting started via tutorials, API documentation, and advanced examples can be found at https://itcsimlib.readthedocs.io/
 
-Although itcsimlib comes with several binding models that may fit your data well (including both Ising and non-Ising based ones), to really leverage itcsimlib to learn the most about your particular system, you'll probably want to write your own models. Itcsimlib will save you a lot of time dealing with all of the non-exciting and non-modeling aspects of model evaluation.
+Although itcsimlib comes with several binding models that may fit your data, you'll eventually want to write your own. You may want to try out [itcsimlib-blockly](https://github.com/elihuihms/itcsimlib-blockly), which uses Google's [Blockly](https://developers.google.com/blockly/) visual programming language to build itcsimlib statistical thermodynamics models.
 
 If at any point you need help, have constructive criticism, or wish to contribute some of your own ideas or models to itcsimlib, please contact the author at mail@elihuihms.com.
 
 # Requirements
 
-Itcsimlib requires the scipy (v0.11 or above) and matplotlib modules (v1.3 or above). For automated generation of symbolic partition functions, you'll also need the sympy module. You can install all of these piecemeal, or better yet, get a complete Python environment, including most of the commonly-used modules pre-packaged together by installing the Anaconda Python stack, available at https://www.continuum.io/downloads.
+See `requirements.txt` for all required dependencies. Note that Tkinter is necessary only if you want to use the Manipulator class to visualize the effects of changing model parameters in realtime. Ultimately, the easiest and quickest route to get started is probably to install the Anaconda Python stack available at https://www.continuum.io/downloads.
 
 # Installing itcsimlib
 
-You have two options:
+```
+cd itcsimlib
+pip install -r requirements.txt
+python setup.py install
+```
 
-1. Use the included distutils setup.py, i.e. "python setup.py install".
-
-2. Move the itcsimlib directory (the one that contains __init__.py and all the other python sources) to a directory along with your experimental data. You can edit your shell's PYTHONPATH environmental variable to point to a directory that contains itcsimlib, thus avoiding having to maintain multiple copies.
-
-Note that if you want to compile the optional TRAP+Tryptophan binding models that are written in C, you'll either want to run the setup script with the "--build-c-models" flag, or use the traditional configure/make scripts (see "model_trap" in the itcsimlib directory). Keep in mind that compiling these models will additionally require the GNU scientific library: https://www.gnu.org/software/gsl/.
+If you want to compile the optional TRAP + Tryptophan models that are written in C, you'll either want to run the setup script with the `--build-c-models` flag, or use the traditional configure/make scripts (see `src/model_trap`). Keep in mind that these models require the GNU scientific library: https://www.gnu.org/software/gsl/.
 
 # Acknowledging itcsimlib
 
