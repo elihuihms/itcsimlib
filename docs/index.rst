@@ -14,10 +14,10 @@ Getting Started
 
 * :ref:`itcsimlib-examples` for additional functionality, tools, and advanced topics.
 
-itcsimlib Reference
+Reference
 ===================
 
-itcsimlib doesn't possess a GUI. You will need to write scripts in Python that make use of itcsimlib classes that use the various classes described below. 
+itcsimlib doesn't possess a GUI. You will need to write scripts in Python that make use of the itcsimlib classes described below. 
 
 Essentials
 ----------
