@@ -1,4 +1,4 @@
-__version__		= "0.6.0"
+__version__		= "0.6.1"
 __copyright__	= """Copyright (C) Elihu Ihms
 
 This program is free software; you can redistribute it and/or modify

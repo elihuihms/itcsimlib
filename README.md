@@ -29,4 +29,4 @@ If you want to compile the optional TRAP + Tryptophan models that are written in
 
 # Acknowledging itcsimlib
 
-It is my sincere hope that itcsimlib assists your research efforts. If it does, please consider citing the following paper in your manuscript: Ihms, Elihu C. et al. "Mechanistic models fit to variable temperature calorimetric data provide insights into cooperativity.” Biophysical Journal (2017)
+It is my sincere hope that itcsimlib assists your research efforts. If it does, please consider citing the following paper in your manuscript: Ihms, Elihu C. et al. "Mechanistic models fit to variable temperature calorimetric data provide insights into cooperativity.” Biophysical Journal (2017) https://doi.org/10.1016/j.bpj.2017.02.031

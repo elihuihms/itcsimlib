@@ -5,7 +5,7 @@ if sys.version_info < (3, 0, 0):
 	sys.stderr.write("Error: itcsimlib requires Python 3.0 or newer.\n")
 	sys.exit(-1)
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from distutils.core import Extension
 from distutils.version import LooseVersion
 from distutils.command import build
@@ -92,7 +92,7 @@ setup(
 		'Intended Audience :: Science/Research',
 		'License :: OSI Approved :: GNU General Public License v2 (GPLv2)'
 	],
-	packages=['itcsimlib'],
+	packages=find_packages(),
 	ext_modules = [],
 	cmdclass={
 		'build':check_c_build,

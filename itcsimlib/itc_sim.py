@@ -7,6 +7,7 @@ import os
 import copy
 import multiprocessing
 
+from .					import __version__
 from .itc_experiment	import *
 from .itc_calc			import ITCCalc
 from .thermo			import _UNITS
@@ -73,10 +74,9 @@ class ITCSim:
 		"""
 
 		import sys
-		from __init__			import __version__
 		from os.path			import abspath, getmtime
 		from datetime			import date
-		
+
 		ret = "################################################################################\n"
 		ret+= "{:^80}".format("itcsimlib v.%s"%(__version__))
 		ret+= "\n\nExecution Date: %s\n"%(date.today().ctime())
