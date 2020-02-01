@@ -3,9 +3,9 @@
 
 """
 
-import scipy
 import uuid
 import os
+import numpy
 
 from . import MATPLOTLIB_BACKEND
 from .thermo	import *
@@ -133,7 +133,7 @@ class ITCExperimentBase:
 		assert len(dQ) == self.npoints
 
 		# convert raw data (in calories) to joules (note that this is not normalized per mol of injectant!)
-		self.dQ_exp = scipy.array([J_from_cal(dQ[i]) for i in range(self.npoints)],dtype='d')
+		self.dQ_exp = numpy.array([J_from_cal(dQ[i]) for i in range(self.npoints)],dtype='d')
 		self.dQ_fit	= None
 		self.spline = None
 
@@ -141,7 +141,7 @@ class ITCExperimentBase:
 			self.dQ_err = None
 		else:
 			assert len(dQ_err) == self.npoints
-			self.dQ_err = scipy.array([J_from_cal(dQ_err[i]) for i in range(self.npoints)],dtype='d')
+			self.dQ_err = numpy.array([J_from_cal(dQ_err[i]) for i in range(self.npoints)],dtype='d')
 
 		self.chisq	= None
 		self.initialized = False # will be set to True by implementors of this base class
@@ -223,13 +223,15 @@ class ITCExperimentBase:
 		if self.syringeRef == old_name:
 			self.syringeRef = new_name
 		
-	def make_plot(self,hardcopy=False,hardcopydir='.',hardcopyprefix='', hardcopytype='png'):
+	def make_plot(self, residuals=True, hardcopy=False, hardcopydir='.', hardcopyprefix='', hardcopytype='png'):
 		"""Generate a plot of the experimental data, and the fit if present.
 
 		Arguments
 		----------
+		residuals: boolean
+			Includes a plot of fit residuals if a fit is present.
 		hardcopy : boolean
-			Display the fit to the screen, or write it to a file?
+			Writes the plot to a file instead of displaying to screen.
 		hardcopydir : string
 			The directory to write the hardcopy to.
 		hardcopyprefix : string
@@ -253,40 +255,51 @@ class ITCExperimentBase:
 		
 		import matplotlib.pyplot as pyplot
 
-		if hardcopy: fig = pyplot.figure()
+		if self.dQ_fit is not None and residuals:
+			fig, (ax1, ax2) = pyplot.subplots(2, gridspec_kw={"height_ratios": [3, 1]})
+			ax2.set_ylabel("Residual (%s)"%(self.units))
+			ax2.set_xlabel("%s / %s"%(self.syringeRef,self.cellRef))
+			ax2.axhline(y=0.0, c='#000000',lw=1.0, ls="--")
+			fig.tight_layout()
+		else:
+			fig, ax1 = pyplot.subplots()
 
-		pyplot.clf()
-		pyplot.title(self.title)
-		pyplot.ylabel("%s/mol of %s"%(self.units,self.syringeRef))
-		pyplot.xlabel("%s / %s"%(self.syringeRef,self.cellRef))
+		ax1.set_title(self.title)
+		ax1.set_ylabel("%s/mol of %s"%(self.units,self.syringeRef))
+		ax1.set_xlabel("%s / %s"%(self.syringeRef,self.cellRef))
 
 		# For convention, normalize the heat evolved as per mol of injected reference ligand
-		tmpx = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in range(self.npoints) if i not in self.skip ]
-		tmpy = [ convert_from_J(self.units,self.dQ_exp[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in range(self.npoints) if i not in self.skip ]
-		
+		tmp_rat = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in range(self.npoints) if i not in self.skip ]
+		tmp_exp = [ convert_from_J(self.units,self.dQ_exp[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in range(self.npoints) if i not in self.skip ]
+
 		if self.dQ_err is not None:
-			tmpd = [ convert_from_J(self.units,self.dQ_err[i]) for i in range(self.npoints) if i not in self.skip ]
-			pyplot.errorbar(tmpx,tmpy,yerr=tmpd,c='#000000',fmt='s')
+			tmp_err = [ convert_from_J(self.units,self.dQ_err[i]) for i in range(self.npoints) if i not in self.skip ]
+			ax1.errorbar(tmp_rat,tmp_exp,yerr=tmp_err,c='#000000',fmt='s')
 
 		if self.spline is not None:
-			tmpz = [ convert_from_J(self.units,self.spline[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in range(self.npoints) if i not in self.skip ]
-			pyplot.plot(tmpx,tmpz,c='g')
-
-		if self.dQ_fit is not None:
-			tmpy = [ convert_from_J(self.units,self.dQ_fit[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in range(self.npoints) if i not in self.skip ]
-			pyplot.plot(tmpx,tmpy,c='r')
+			tmp_spl = [ convert_from_J(self.units,self.spline[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in range(self.npoints) if i not in self.skip ]
+			ax1.plot(tmp_rat,tmp_spl,c='g')
 
 		if len(self.skip) > 0:
-			tmpx = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in self.skip ]
-			tmpy = [ convert_from_J(self.units,self.dQ_exp[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in self.skip ]
-			pyplot.errorbar(tmpx,tmpy,yerr=0,c='g',fmt='s')
-			
-		if self.Q_dil != 0:
-			tmpx = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in range(self.npoints) if i not in self.skip ]
-			tmpy = [ convert_from_J(self.units,self.dQ_dil[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in range(self.npoints) if i not in self.skip ]
-			pyplot.plot(tmpx,tmpy,c='b')
+			tmp_xsk = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in self.skip ]
+			tmp_ysk = [ convert_from_J(self.units,self.dQ_exp[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in self.skip ]
+			ax1.errorbar(tmp_xsk,tmp_ysk,yerr=0.0,c='g',fmt='s')		
 
-		pyplot.draw()
+		if self.Q_dil != 0:
+			tmp_xdl = [ self.Concentrations[i][self.syringeRef]/self.Concentrations[i][self.cellRef] for i in range(self.npoints) if i not in self.skip ]
+			tmp_ydl = [ convert_from_J(self.units,self.dQ_dil[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in range(self.npoints) if i not in self.skip ]
+			ax1.plot(tmp_xdl,tmp_ydl,c='b')
+
+		if self.dQ_fit is not None:
+			tmp_fit = [ convert_from_J(self.units,self.dQ_fit[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in range(self.npoints) if i not in self.skip ]
+			ax1.plot(tmp_rat,tmp_fit,c='r')
+			if residuals:
+				ax2.errorbar(tmp_rat,[y1-y2 for y1,y2 in zip(tmp_exp,tmp_fit)],yerr=tmp_err,c='r',fmt='s')
+			if residuals and len(self.skip) > 0:
+				tmp_fit = [ convert_from_J(self.units,self.dQ_fit[i])/self.Syringe[self.syringeRef]/self.injections[i] for i in self.skip ]
+				ax2.errorbar(tmp_xsk,[y1-y2 for y1,y2 in zip(tmp_ysk,tmp_fit)],yerr=0.0,c='g',fmt='s')
+
+
 		if hardcopy:
 			fig.savefig( os.path.join(hardcopydir,"%s%s.%s"%(hardcopyprefix,self.title,hardcopytype)), bbox_inches='tight')
 			pyplot.close(fig)
@@ -448,7 +461,7 @@ class ITCExperiment(ITCExperimentBase):
 					counter += 1
 
 			spl = savitzky_golay([self.dQ_exp[i] for i in range(self.npoints) if i not in self.skip], spline_pts, spline_order )
-			err = scipy.std([self.dQ_exp[i] - spl[tmp[i]] for i in range(self.npoints) if i not in self.skip])
+			err = numpy.std([self.dQ_exp[i] - spl[tmp[i]] for i in range(self.npoints) if i not in self.skip])
 			self.dQ_err = [err]*self.npoints
 			self.spline = [spl[tmp[i]] for i in range(self.npoints)]
 		
@@ -516,7 +529,7 @@ class ITCExperimentSynthetic(ITCExperimentBase):
 			if self.noise:
 				self.dQ_err = [self.noise]*self.npoints
 				ret = ITCExperimentBase.get_chisq(self, Q[:], writeback=True)
-				self.dQ_exp = [scipy.random.normal(self.dQ_fit[i],self.noise) for i in range(self.npoints)]
+				self.dQ_exp = [numpy.random.normal(self.dQ_fit[i],self.noise) for i in range(self.npoints)]
 			elif self.noise == 0 or self.noise == None:
 				ITCExperimentBase.get_chisq(self, Q[:], writeback=True)
 				self.chisq = 1.0

@@ -5,8 +5,8 @@
 
 import os
 import sys
-import scipy
 import uuid
+import numpy
 
 from .itc_experiment import ITCExperimentBase
 from .model_ising import Ising
@@ -150,12 +150,12 @@ class MSExperiment(ITCExperimentBase):
 				
 			self.npoints = int(self.npoints/2) # first half of points matrix are experimental values, second half are uncertainties
 			self.Concentrations = self.Concentrations[:self.npoints] # discard the duplicated concentration columns for sigmas
-			self.PopIntens = scipy.array(data[:self.npoints]).reshape((int(self.npoints/self.npops),self.npops))
-			self.PopSigmas = scipy.array(data[self.npoints:]).reshape((int(self.npoints/self.npops),self.npops))
+			self.PopIntens = numpy.array(data[:self.npoints]).reshape((int(self.npoints/self.npops),self.npops))
+			self.PopSigmas = numpy.array(data[self.npoints:]).reshape((int(self.npoints/self.npops),self.npops))
 		else:
 			self.sigma = keypairs['Error']
-			self.PopIntens = scipy.array(data).reshape((int(self.npoints/self.npops),self.npops))
-			self.PopSigmas = scipy.full(self.PopIntens.shape,self.sigma)
+			self.PopIntens = numpy.array(data).reshape((int(self.npoints/self.npops),self.npops))
+			self.PopSigmas = numpy.full(self.PopIntens.shape,self.sigma)
 
 		# normalize intensities to 1, accordingly scale their sigmas
 		totals = self.PopIntens.sum(axis=1,keepdims=True)
@@ -163,10 +163,10 @@ class MSExperiment(ITCExperimentBase):
 		self.PopSigmas /= totals
 
 		# precompute variance (s**2) from sigmas
-		self.PopSigmas = scipy.square(self.PopSigmas)
-		self.sigma = scipy.sqrt(scipy.mean(self.PopSigmas))
+		self.PopSigmas = numpy.square(self.PopSigmas)
+		self.sigma = numpy.sqrt(numpy.mean(self.PopSigmas))
 
-		self.PopFits = scipy.zeros(self.PopIntens.shape)
+		self.PopFits = numpy.zeros(self.PopIntens.shape)
 
 		self.chisq = None
 		self.initialized = True
@@ -291,8 +291,8 @@ class MSExperiment(ITCExperimentBase):
 		xs = range(int(self.npoints / self.npops)) # number of concentrations
 		for i in range(self.npops): # iterating over each configuration 
 
-			ys_fit = scipy.array([pop[i] for pop in self.PopFits])
-			ys_exp = scipy.array([pop[i] for pop in self.PopIntens])
+			ys_fit = numpy.array([pop[i] for pop in self.PopFits])
+			ys_exp = numpy.array([pop[i] for pop in self.PopIntens])
 			
 			if dataset == "fit":
 				ys = ys_fit
@@ -372,7 +372,7 @@ class MSExperiment(ITCExperimentBase):
 
 		assert self.PopIntens.shape == pops.shape
 
-		self.chisq = scipy.sum(scipy.square(self.PopIntens - pops) / self.PopSigmas) / self.PopIntens.size
+		self.chisq = numpy.sum(numpy.square(self.PopIntens - pops) / self.PopSigmas) / self.PopIntens.size
 
 		if writeback:
 			self.PopFits = pops		
@@ -431,9 +431,9 @@ class MSExperimentSynthetic(MSExperiment):
 		"""Extends the base MSExperiment class to overwrite the PopFits attribute on the first call"""
 
 		if not self.initialized:
-			self.PopIntens = scipy.absolute(scipy.random.normal(pops,self.sigma))
-			self.PopSigmas = scipy.full(self.PopIntens.shape,self.sigma**2)
-			self.PopFits = scipy.zeros(self.PopIntens.shape)
+			self.PopIntens = numpy.absolute(numpy.random.normal(pops,self.sigma))
+			self.PopSigmas = numpy.full(self.PopIntens.shape,self.sigma**2)
+			self.PopFits = numpy.zeros(self.PopIntens.shape)
 			self.npoints, self.npops = self.PopIntens.shape
 			self.npoints = self.npoints*self.npops
 			self.initialized = True
@@ -495,7 +495,7 @@ class MSModel(Ising):
 		# set the energies of this model's configs from the base model
 		self.set_energies(T0,T)
 		
-		ret = scipy.zeros((len(concentrations),self.model.nsites+1))
+		ret = numpy.zeros((len(concentrations),self.model.nsites+1))
 		for i,c in enumerate(concentrations):
 			
 			# set the probabilities (weights) for all configurations

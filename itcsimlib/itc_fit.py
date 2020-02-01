@@ -4,7 +4,7 @@
 """
 
 import random
-import scipy
+import numpy
 import scipy.optimize
 
 from collections import OrderedDict
@@ -221,7 +221,7 @@ class ITCFit:
 		
 		if sigma == None: # calculate the expected sigma based on the number of observations
 			# Andrae, Rene, Tim Schulze-Hartung, and Peter Melchior. "Dos and don'ts of reduced chi-squared." arXiv preprint arXiv:1012.3754 (2010).
-			sigma = stdevs * (scipy.sqrt( 2.0 / sum([ e.npoints - len(e.skip) for e in self.sim.experiments ]) ))
+			sigma = stdevs * (numpy.sqrt( 2.0 / sum([ e.npoints - len(e.skip) for e in self.sim.experiments ]) ))
 		
 		# the critical chisq is the point where the low and high parameter estimates are obtained
 		critical_chisq = self.sim.run() + sigma
@@ -362,14 +362,14 @@ class ITCFit:
 			E.dQ_fit = dQ_fit[i]
 
 		# return the mean and standard deviation of the model parameters
-		return OrderedDict( (p,(scipy.mean(param_values[p]),scipy.std(param_values[p]))) for p in params )
+		return OrderedDict( (p,(numpy.mean(param_values[p]),numpy.std(param_values[p]))) for p in params )
 
 	def _apply_bounds(self):
 		ret = 0
 		for k,v in self.sim.get_model_params().items():
 			if self.bounds[k][0] != None and v < self.bounds[k][0]:
 				self.sim.set_model_param(k, self.bounds[k][0])
-				ret += scipy.fabs((self.bounds[k][0] - v) / self.bounds[k][0])
+				ret += numpy.fabs((self.bounds[k][0] - v) / self.bounds[k][0])
 				if self.verbose:
 					print("itc_fit: Boundary violation for \"%s\" (%f<%f)"%(k,v,self.bounds[k][0]))
 

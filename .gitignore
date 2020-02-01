@@ -33,6 +33,10 @@ dist/
 MANIFEST
 itcsimlib.egg-info
 
+# Virtualenv
+venv/
+env/
+
 # MacOS garbage
 .DS_Store
 

@@ -5,8 +5,7 @@
 
 import os
 import pickle
-import scipy
-import scipy.special
+import numpy
 import scipy.signal
 
 from collections import OrderedDict
@@ -66,7 +65,7 @@ def read_itcsimlib_exp( file, exp_args={} ):
 	from .itc_experiment import ITCExperiment
 
 	ignore = ("itcsim","Date","Ivol","units")
-	data,h = scipy.genfromtxt(file,unpack=True),open(file)
+	data,h = numpy.genfromtxt(file,unpack=True),open(file)
 	kwargs = {'Cell':{},'Syringe':{}}
 	for a in [l.split()[1:] for l in h.readlines() if l[0]=='#']:
 		if a == [] or a[0] in ignore:
@@ -111,8 +110,8 @@ def read_nitpic_exp( file, exp_args={}, recalc_concs=False ):
 	assert len(nitpic['inj_vols']) == len(nitpic['NDH'])
 	
 	# get uncertainty in dh by scaling NDH interval (high and low, assuming +/- 1 SD) against NDH
-	DH, NDH = scipy.array(nitpic['dh']), scipy.array(nitpic['NDH'])
-	NDH_u, NDH_d = scipy.array(nitpic['NDHerrorsUp']), scipy.array(nitpic['NDHerrorsDown'])
+	DH, NDH = numpy.array(nitpic['dh']), numpy.array(nitpic['NDH'])
+	NDH_u, NDH_d = numpy.array(nitpic['NDHerrorsUp']), numpy.array(nitpic['NDHerrorsDown'])
 
 	kwargs = {
 		'skip' : [],

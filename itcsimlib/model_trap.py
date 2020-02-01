@@ -7,7 +7,7 @@ Using compiled DLLs typically provides an order-of-magnitude increase or better 
 import os
 import glob
 import ctypes
-import scipy
+import numpy
 
 from .itc_model	import ITCModel
 from .thermo	import *
@@ -84,7 +84,7 @@ class TRAP_DLL_Model(ITCModel):
 			Named components are "TRAP" (lattice) and "Trp" (ligand).
 		"""
 		n = len(concentrations)
-		Q = scipy.zeros(n,scipy.dtype('d'))
+		Q = numpy.zeros(n,numpy.dtype('d'))
 		
 		# patch for compatibility with general model nomenclature
 		if 'TRAP' not in concentrations[0]:
@@ -93,10 +93,10 @@ class TRAP_DLL_Model(ITCModel):
 		status = self._lib.calc(
 			ctypes.c_int( n ),
 			ctypes.c_double( T ),
-			scipy.array([c['TRAP'] for c in concentrations],scipy.dtype('d')).ctypes,
-			scipy.array([c['Trp']  for c in concentrations],scipy.dtype('d')).ctypes,
+			numpy.array([c['TRAP'] for c in concentrations],numpy.dtype('d')).ctypes,
+			numpy.array([c['Trp']  for c in concentrations],numpy.dtype('d')).ctypes,
 			Q.ctypes,
-			scipy.array(params,scipy.dtype('d')).ctypes
+			numpy.array(params,numpy.dtype('d')).ctypes
 		)
 		
 		if status != 0:

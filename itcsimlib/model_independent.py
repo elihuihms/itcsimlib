@@ -5,7 +5,6 @@
 
 import warnings
 import math
-import scipy
 import scipy.optimize
 
 from .itc_model	import ITCModel

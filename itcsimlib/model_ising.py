@@ -4,7 +4,7 @@
 """
 
 import sys
-import scipy
+import numpy
 import scipy.optimize
 import sympy
 import pyx
@@ -134,7 +134,7 @@ class Ising(ITCModel):
 			# Return the deviation between predicted and actual free ligand concentration
 			
 			# set the probability of each configuration at the free ligand concentration
-			self.weights = [scipy.exp( (-1.0 * self.gibbs[i]) / ( _R * T ) ) * freeL**self.bound[i] for i in range(self.nconfigs) ]
+			self.weights = [numpy.exp( (-1.0 * self.gibbs[i]) / ( _R * T ) ) * freeL**self.bound[i] for i in range(self.nconfigs) ]
 			total = sum(self.weights)
 			self.weights = [ self.weights[i] / total for i in range(self.nconfigs) ]
 			
@@ -279,10 +279,10 @@ class Ising(ITCModel):
 
 		def _draw_circular_lattice(self,loc,r,n,key=None,energy=None,degeneracy=None):
 			x,y = loc
-			chord = 2.0*r*scipy.sin(scipy.pi/n)
-			site_r = (r-(chord/2.0))*scipy.sin(scipy.pi/n)
-			outer_r = site_r / scipy.sin(scipy.pi/n) + site_r
-			inner_r = site_r / scipy.sin(scipy.pi/n) - site_r
+			chord = 2.0*r*numpy.sin(numpy.pi/n)
+			site_r = (r-(chord/2.0))*numpy.sin(numpy.pi/n)
+			outer_r = site_r / numpy.sin(numpy.pi/n) + site_r
+			inner_r = site_r / numpy.sin(numpy.pi/n) - site_r
 
 			c.stroke(path.circle(x,y,outer_r), [style.linewidth.Thick])
 			c.stroke(path.circle(x,y,inner_r), [style.linewidth.Thick])
@@ -293,8 +293,8 @@ class Ising(ITCModel):
 				t = c.text(x+(r*0.68),y-(r*0.68), r"x%s"%str(degeneracy), [text.halign.boxleft, text.valign.top])
 
 			for i in range(0,n):
-				circ_x = x+(scipy.cos(2.0*scipy.pi/n*i)*(r-(0.5*chord)))
-				circ_y = y+(scipy.sin(2.0*scipy.pi/n*i)*(r-(0.5*chord)))
+				circ_x = x+(numpy.cos(2.0*numpy.pi/n*i)*(r-(0.5*chord)))
+				circ_y = y+(numpy.sin(2.0*numpy.pi/n*i)*(r-(0.5*chord)))
 				if key[i] > 0:
 					c.fill(path.circle(circ_x,circ_y,site_r*0.6), [color.rgb.blue])
 				c.stroke(path.circle(circ_x,circ_y,site_r*0.8), [style.linewidth.Thick])

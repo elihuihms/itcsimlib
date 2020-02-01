@@ -3,7 +3,7 @@
 
 """
 
-import scipy
+import numpy
 
 
 class ITCGrid:
@@ -75,9 +75,9 @@ class ITCGrid:
 		assert param in self.sim.get_model_params().keys()
 		
 		if logspace:
-			self._grid_pts.append( scipy.logspace(start,stop,steps) )
+			self._grid_pts.append( numpy.logspace(start,stop,steps) )
 		else:
-			self._grid_pts.append( scipy.linspace(start,stop,steps) )
+			self._grid_pts.append( numpy.linspace(start,stop,steps) )
 		self._grid_size *= len(self._grid_pts[-1])
 		self._grid_order.append(param)
 

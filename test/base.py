@@ -2,6 +2,7 @@
 
 import unittest
 import os
+import random
 import sys
 import shutil
 import tempfile
@@ -61,7 +62,9 @@ class TestITCExperiment(TestITCBase):
 
 	def test_experiment_plot(self):
 		from itcsimlib.itc_experiment import ITCExperiment
-		E = read_itcsimlib_exp(get_test_data('base_1.txt'))
+		E = read_itcsimlib_exp(get_test_data('base_1.txt'), exp_args={"skip":[0,1,2,10]})
+		E.dQ_err = [5E3*random.random() for dQ in E.spline]
+		E.dQ_fit = E.spline
 		E.make_plot(hardcopy=True, hardcopydir=self.test_dir, hardcopytype="png")
 		self.assertTrue( os.path.isfile(os.path.join(self.test_dir,"base_1.png")) )
 		
