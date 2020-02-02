@@ -275,7 +275,7 @@ class ITCSim:
 			experiment = read_itcsimlib_pkl( path )
 		elif ext == ".nitpkl":
 			experiment = read_nitpikl_exp( path, exp_args=kwargs )
-		elif ext == ".dh" or ext = ".DH":
+		elif ext == ".dh" or ext == ".DH":
 			experiment = read_origin_exp( path, exp_args=kwargs )
 		else:
 			experiment = read_itcsimlib_exp( path, exp_args=kwargs )
