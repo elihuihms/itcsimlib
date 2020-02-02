@@ -127,14 +127,14 @@ def read_nitpikl_exp( file, exp_args={}, recalc_concs=False ):
 		V0 = nitpic['cell_V'],
 		injections = nitpic['inj_vols'],
 		dQ = nitpic['dh'],
-		Cell = {'M':nitpic['CellConc']},
-		Syringe = {'X':nitpic['SyrConc']},
+		Cell = {kwargs["cellRef"]:nitpic['CellConc']},
+		Syringe = {kwargs["syringeRef"]:nitpic['SyrConc']},
 		**kwargs)
 
 	if not recalc_concs: # do we overwrite the concentrations we calculated with those in the file?
 		for i in range(experiment.npoints):
-			experiment.Concentrations[i]['M'] = nitpic['Mt'][i]
-			experiment.Concentrations[i]['X'] = nitpic['Xt'][i]
+			experiment.Concentrations[i][kwargs["cellRef"]] = nitpic['Mt'][i]
+			experiment.Concentrations[i][kwargs["syringeRef"]] = nitpic['Xt'][i]
 
 	experiment.initialized = True
 	return experiment
@@ -160,8 +160,8 @@ def read_nitpic_exp( file, exp_args={} ):
 		V0 = pytc_experiment.cell_volume,
 		injections = pytc_experiment._shots,
 		dQ = pytc_experiment._heats,
-		Cell = {"M":pytc_experiment.stationary_cell_conc},
-		Syringe = {"X":pytc_experiment.titrant_syringe_conc},
+		Cell = {kwargs["cellRef"]:pytc_experiment.stationary_cell_conc},
+		Syringe = {kwargs["syringeRef"]:pytc_experiment.titrant_syringe_conc},
 		**kwargs)
 
 	experiment.initialized = True
@@ -188,8 +188,8 @@ def read_origin_exp( file, exp_args={} ):
 		V0 = pytc_experiment.cell_volume,
 		injections = pytc_experiment._shots,
 		dQ = pytc_experiment._heats,
-		Cell = {"M":pytc_experiment.stationary_cell_conc},
-		Syringe = {"X":pytc_experiment.titrant_syringe_conc},
+		Cell = {kwargs["cellRef"]:pytc_experiment.stationary_cell_conc},
+		Syringe = {kwargs["syringeRef"]:pytc_experiment.titrant_syringe_conc},
 		**kwargs)
 
 	experiment.initialized = True
