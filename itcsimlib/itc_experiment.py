@@ -166,15 +166,15 @@ class ITCExperimentBase:
 		ret+= "%i Injections (%i skipped)\n"%(self.npoints,len(self.skip))
 		ret+= "Dilution enthalpy: %.3E\n"%(self.Q_dil)
 		ret+= "Cell components:\n"
-		for s in self.Cell:
-			ret+="\t%s (%.3E M)"%(s,self.Concentrations[0][s])
-			if s == list(self.Cell.keys())[0]:
+		for s,conc in self.Cell.items():
+			ret+="\t%s (%.3E M)"%(s,conc)
+			if s == self.cellRef:
 				ret+=" (reference)"
 			ret+="\n"
 		ret+= "Syringe components:\n"
-		for s in self.Syringe:
-			ret+="\t%s (%.3E M)"%(s,self.Concentrations[0][s])
-			if s == list(self.Syringe.keys())[0]:
+		for s,conc in self.Syringe.items():
+			ret+="\t%s (%.3E M)"%(s,conc)
+			if s == self.syringeRef:
 				ret+=" (reference)"
 			ret+="\n"
 		return ret
