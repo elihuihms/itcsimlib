@@ -123,7 +123,7 @@ def read_nitpikl_exp( file, exp_args={}, recalc_concs=False ):
 
 	kwargs.update(exp_args)
 	experiment = ITCExperimentBase(
-		T = nitpic['experimental_temp'],
+		T = 273.15 + nitpic['experimental_temp'],
 		V0 = nitpic['cell_V'],
 		injections = nitpic['inj_vols'],
 		dQ = nitpic['dh'],
@@ -156,7 +156,7 @@ def read_nitpic_exp( file, exp_args={} ):
 	kwargs.update(exp_args)
 	
 	experiment = ITCExperimentBase(
-		T = pytc_experiment.temperature,
+		T = 273.15 + pytc_experiment.temperature,
 		V0 = pytc_experiment.cell_volume,
 		injections = pytc_experiment._shots,
 		dQ = pytc_experiment._heats,
@@ -184,7 +184,7 @@ def read_origin_exp( file, exp_args={} ):
 	kwargs.update(exp_args)
 	
 	experiment = ITCExperimentBase(
-		T = pytc_experiment.temperature,
+		T = 273.15 + pytc_experiment.temperature,
 		V0 = pytc_experiment.cell_volume,
 		injections = pytc_experiment._shots,
 		dQ = pytc_experiment._heats,
