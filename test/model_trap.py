@@ -1,18 +1,11 @@
-#!/usr/bin/env python
-
-import unittest
 import os
 import sys
 
-try:
-	from itcsimlib import *
-except ImportError:
-	sys.path.append(os.path.abspath(".."))
-	from itcsimlib import *
 from itcsimlib.utilities import *
 from itcsimlib.model_trap import *
 
-from model import TestModel
+from .itc_model import TestModel
+
 
 def compiled_model_exists(modellib):
 	path = os.path.abspath(__file__) # ../itcsimlib/test/trap.py
@@ -84,6 +77,3 @@ class TestTRAPModels(TestModel):
 			dH0 = -12, dHoe = 2, dHoo = -2,
 			dCp0= 0.0, dCpoe=0.0,dCpoo=0.0)
 		self.assertTrue( self.sim.run() > 1.0 )
-
-if __name__ == '__main__':
-	unittest.main()

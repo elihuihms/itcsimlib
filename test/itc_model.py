@@ -1,18 +1,11 @@
-#!/usr/bin/env python
-
-import unittest
 import os
 import sys
 
-try:
-	from itcsimlib import *
-except ImportError:
-	sys.path.append(os.path.abspath(".."))
-	from itcsimlib import *
 from itcsimlib.model_independent import *
 from itcsimlib.model_ising import *
 
-from base import TestITCSIM
+from .itc_sim import TestITCSIM
+
 
 class TestModel(TestITCSIM):
 	def reset_simulation(self,cell="Lattice",syringe="Ligand"):
@@ -102,6 +95,3 @@ class TestIsingModels(TestModel):
 			dHX = -8, dHY =-10, dHZ = -12,
 			dCpX= -0, dCpY=-1, dCpZ = -2)
 		self.assertTrue( self.sim.run() > 1.0 )
-		
-if __name__ == '__main__':
-	unittest.main()
