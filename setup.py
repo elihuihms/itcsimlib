@@ -42,7 +42,11 @@ model_ik = Extension("itcsimlib.model_trap_ik",
 model_nn = Extension("itcsimlib.model_trap_nn",
 	libraries = model_libraries, extra_compile_args=['-std=c99'],
 	sources=["src/model_trap/energies_nn.c"]+model_sources,
-	)		
+	)
+model_ab = Extension("itcsimlib.model_trap_ab",
+	libraries = model_libraries, extra_compile_args=['-std=c99'],
+	sources=["src/model_trap/energies_ab.c"]+model_sources,
+	)	
 
 class check_c_build(build.build):
 	user_options=build.build.user_options + [("build-c-models",None,"Compile TRAP+Tryptophan models written in C")]
