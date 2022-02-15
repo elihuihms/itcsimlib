@@ -43,7 +43,6 @@ void assignEnergies( struct mWorkspace *w, struct sWorkspace *sim, double *param
 		w->energies[i]=0;
 		sim->enthalpies[i]=0;
 
-		/* start w/ presence of ligand dG */
 		for(int j=0; j<w->size; j++)
 		{
 			if( w->configs[i][j] > 0 )
