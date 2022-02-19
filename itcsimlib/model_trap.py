@@ -232,3 +232,53 @@ class SKa(TRAP_DLL_Model):
 			dH_vant_Hoff( self.params['dH0']+(2*self.params['dHb']), self.params['dCp0']+(2*self.params['dCpb']), T, T0 ),
 			)
 		return self.calc(T,concentrations,p)
+
+class ABDimer(TRAP_DLL_Model):
+	"""
+	Weicheng's dimer TRAP model.
+	"""
+
+	libpath = 'model_trap_ab.so'
+
+	def __init__(self):
+		# Run the ITCModel __init__, not the TRAP_DLL_Model __init__. 
+		ITCModel.__init__(self)
+		
+		# There are six dimers per TRAP donut.
+		self.nsites, self.circular = 12, 1
+
+		match = glob.glob( os.path.join( os.path.dirname(__file__), self.libpath ) )
+		if len(match) == 0 or len(match) > 1:
+			raise ImportError("Could not import shared library path at \"%s\"."%self._path)
+		self._path = match[0]
+		self._lib = None
+
+		# Dry run to attempt to load the library.
+		self.start()
+		self.stop()
+
+		self.add_component('TRAP',description='An %i-site circular lattice of tryptophan binding sites'%(self.nsites))
+		self.add_component('Trp',description='A molecule of tryptophan')
+
+		self.add_parameter( 'dGA',	'dG',	description='Intrinsic free energy change upon binding to the site A, odd position.' )
+		self.add_parameter( 'dGB',	'dG',	description='Intrinsic free energy change upon binding to the site B, even position.' )
+		self.add_parameter( 'dGC',	'dG',	description='Additional free energy change upon binding to the site flanked by an occupied site.' )
+		self.add_parameter( 'dHA',	'dH',	description='Intrinsic enthalpy change upon binding to the site A, odd position.' )
+		self.add_parameter( 'dHB',	'dH',	description='Intrinsic enthalpy change upon binding to the site B, even position.' )
+		self.add_parameter( 'dHC',	'dH',	description='Additional free energy change upon binding to the site flanked by an occupied site' )
+		self.add_parameter( 'dCpA',	'dCp',	description='Intrinsic heat capacity change upon binding to the site A, odd position.' )
+		self.add_parameter( 'dCpB', 'dCp',	description='Intrinsic heat capacity change upon binding to the site B, even position.' )
+		self.add_parameter( 'dCpC', 'dCp',	description='Additional free energy change upon binding to the site flanked by an occupied site' )
+
+
+	def Q(self,T0,T,concentrations):
+		"""Returns the total binding heat at each injection predicted by the model and its current parameter values. See parent model for information."""
+		p = (
+			dG_vant_Hoff( self.params['dGA'], self.params['dHA'], self.params['dCpA'], T, T0 ),
+			dG_vant_Hoff( self.params['dGB'], self.params['dHB'], self.params['dCpB'], T, T0 ),
+			dG_vant_Hoff( self.params['dGC'], self.params['dHC'], self.params['dCpC'], T, T0 ),
+			dH_vant_Hoff( self.params['dHA'], self.params['dCpA'], T, T0 ),
+			dH_vant_Hoff( self.params['dHB'], self.params['dCpB'], T, T0 ),
+			dH_vant_Hoff( self.params['dHC'], self.params['dCpC'], T, T0 )
+		)
+		return self.calc(T,concentrations,p)

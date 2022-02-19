@@ -1,6 +1,6 @@
 SOURCES=itc_model.c itc_sim.c itc_calc.c 
 
-all: model_trap_sk model_trap_ik model_trap_nn
+all: model_trap_sk model_trap_ik model_trap_nn model_trap_ab
 
 # Saroff and Kiefer's 1998 model
 model_trap_sk:
@@ -14,5 +14,7 @@ model_trap_ik:
 model_trap_nn:
 	@CC@ -shared -std=c99 @CFLAGS@ @LIBS@ $(SOURCES) energies_nn.c -o ../../itcsimlib/model_trap_nn.so
 
-
+# Weicheng's dimer model
+model_trap_ab:
+	@CC@ -shared -std=c99 @CFLAGS@ @LIBS@ $(SOURCES) energies_ab.c -o ../../itcsimlib/model_trap_ab.so
 
