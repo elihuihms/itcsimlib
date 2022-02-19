@@ -402,11 +402,6 @@ class MSExperimentSynthetic(MSExperiment):
 		assert len(lattice_concs) == len(ligand_concs)
 
 		self.sigma = noise
-		if title is not None:
-			self.title = title
-		else:
-			self.title = uuid.uuid4()
-
 		self.lattice_name, self.ligand_name = lattice_name, ligand_name
 
 		# patches to play nice with the ITCExperimentBase base class constructor. Do we even need this?
@@ -414,9 +409,14 @@ class MSExperimentSynthetic(MSExperiment):
 		Cell,Syringe = {self.lattice_name:1.0},{self.ligand_name:1.0}
 		self.path = None
 
-		ITCExperimentBase.__init__(self, T, V0, injections, dQ, Cell, Syringe, title=self.title)
+		super(MSExperiment, self).__init__(T, V0, injections, dQ, Cell, Syringe)
 
 		# reset key attributes now
+		if title is not None:
+			self.title = title
+		else:
+			self.title = str(uuid.uuid4())
+
 		self.Concentrations = [{self.lattice_name:lattice_concs[i],self.ligand_name:ligand_concs[i]} for i in range(len(lattice_concs))]
 
 		self.initialized = False
@@ -438,7 +438,7 @@ class MSExperimentSynthetic(MSExperiment):
 			self.npoints = self.npoints*self.npops
 			self.initialized = True
 
-		return MSExperiment.get_chisq(self, pops, writeback)
+		return super().get_chisq(pops, writeback)
 
 
 class MSModel(Ising):

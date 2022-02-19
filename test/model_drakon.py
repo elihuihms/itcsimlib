@@ -1,0 +1,52 @@
+from itcsimlib.model_drakon import DRAKONIsingModel
+
+from .model import TestModel
+
+
+class TestDRAKONModel(TestModel):
+
+	class DRAKONModel(DRAKONIsingModel):
+		def setup(self):
+			self.initialize(nsites=11,circular=True)
+			self.add_parameter("dG_0",type="dG")
+			self.add_parameter("dG_oe",type="dG")
+			self.add_parameter("dG_oo",type="dG")
+			self.add_parameter("dH_0",type="dH")
+			self.add_parameter("dH_oe",type="dH")
+			self.add_parameter("dH_oo",type="dH")
+			self.add_parameter("dCp_0",type="dCp")
+			self.add_parameter("dCp_oe",type="dCp")
+			self.add_parameter("dCp_oo",type="dCp")
+		
+		def site(self, i, j):
+			if self.occupied(i,j) == True:
+				self.add_dG(i, "dG_0", dH="dH_0", dCp="dCp_0" )
+				self.add_dH(i, "dH_0", dCp="dCp_0" )
+				if self.occupied(i,j-1) == True:
+					if self.occupied(i,j+1) == True:
+						self.add_dG(i, "dG_oo", dH="dH_oo", dCp="dCp_oo" )
+						self.add_dH(i, "dH_oo", dCp="dCp_oo" )
+					else:
+						self.add_dG(i, "dG_oe", dH="dH_oe", dCp="dCp_oe" )
+						self.add_dH(i, "dH_oe", dCp="dCp_oe" )
+						if self.occupied(i,j+1) == True:
+							self.add_dG(i, "dG_oe", dH="dH_oe", dCp="dCp_oe" )
+							self.add_dH(i, "dH_oe", dCp="dCp_oe" )
+				else:
+					if self.occupied(i,j+1) == True:
+						self.add_dG(i, "dG_oe", dH="dH_oe", dCp="dCp_oe" )
+						self.add_dH(i, "dH_oe", dCp="dCp_oe" )
+
+	def test_drakon_model(self):
+		self.reset_simulation()
+		self.sim.set_model( self.DRAKONModel() )
+		self.sim.set_model_params(
+			dG_0 = -10, dG_oe = -1, dG_oo = -1.5,
+			dH_0 = -12, dH_oe = -2, dH_oo = -2.5,
+			dCp_0= -1, dCp_oe=-0.5, dCp_oo=-0.75)
+		self.sim.run()
+		self.sim.set_model_params(
+			dG_0 = -10, dG_oe = -1, dG_oo = -1.5,
+			dH_0 = -12, dH_oe = -2, dH_oo = -2.5,
+			dCp_0= 0.0, dCp_oe=0.0, dCp_oo=0.0)
+		self.assertTrue( self.sim.run() > 1.0 )

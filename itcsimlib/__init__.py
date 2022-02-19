@@ -22,7 +22,7 @@ __author_email__	= u'mail@elihuihms.com'
 MATPLOTLIB_BACKEND = None
 
 from .itc_sim		import ITCSim
-from .itc_model	import ITCModel
+from .itc_model		import ITCModel
 from .itc_fit		import ITCFit
 from .itc_calc		import ITCCalc
 from .itc_grid		import ITCGrid

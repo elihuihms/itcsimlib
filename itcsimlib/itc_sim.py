@@ -251,12 +251,12 @@ class ITCSim:
 		self.add_experiment( ITCExperimentSynthetic(units=self.units,*args,**kwargs) )
 		return self.experiments[-1]
 
-	def add_experiment_file( self, file, **kwargs ):
-		"""Add an experiment present in a file to the simulator.
+	def add_experiment_file( self, path, **kwargs ):
+		"""Add an experiment present in the provided path to the simulator.
 		
 		Arguments
 		---------
-		file : string
+		path : string
 			Path to the experiment file.
 		**kwargs
 			Keyword arguments to the ITCExperiment constructor, can be used to overwrite any file-defined arguments.
@@ -267,13 +267,18 @@ class ITCSim:
 			The experiment created and added to the simulator.
 		"""
 
-		fname,ext = os.path.splitext(file)
-		if ext == ".itcpkl":
-			experiment = read_itcsimlib_pkl( file )
+		fname,ext = os.path.splitext(path)
+
+		if os.path.isdir( path ):
+			experiment = read_nitpic_exp( path, exp_args=kwargs )
+		elif ext == ".itcpkl":
+			experiment = read_itcsimlib_pkl( path )
 		elif ext == ".nitpkl":
-			experiment = read_nitpic_exp( file, exp_args=kwargs )
+			experiment = read_nitpikl_exp( path, exp_args=kwargs )
+		elif ext == ".dh" or ext == ".DH":
+			experiment = read_origin_exp( path, exp_args=kwargs )
 		else:
-			experiment = read_itcsimlib_exp( file, exp_args=kwargs )
+			experiment = read_itcsimlib_exp( path, exp_args=kwargs )
 
 		if experiment != None:
 			experiment.units = self.units

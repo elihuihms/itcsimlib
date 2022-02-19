@@ -7,6 +7,7 @@ import os
 import pickle
 import numpy
 import scipy.signal
+import pytc
 
 from collections import OrderedDict
 
@@ -100,7 +101,7 @@ def write_itcsimlib_pickle( path, experiment ):
 	with open(path, 'wb') as handle:
 		return pickle.dump(experiment, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-def read_nitpic_exp( file, exp_args={}, recalc_concs=False ):
+def read_nitpikl_exp( file, exp_args={}, recalc_concs=False ):
 	from .itc_experiment import ITCExperimentBase
 
 	with open( file, 'rb' ) as buf:
@@ -122,21 +123,76 @@ def read_nitpic_exp( file, exp_args={}, recalc_concs=False ):
 
 	kwargs.update(exp_args)
 	experiment = ITCExperimentBase(
-		nitpic['experimental_temp'],
-		nitpic['cell_V'],
-		nitpic['inj_vols'],
-		nitpic['dh'],
-		{'M':nitpic['CellConc']},
-		{'X':nitpic['SyrConc']},
+		T = 273.15 + nitpic['experimental_temp'],
+		V0 = nitpic['cell_V'],
+		injections = nitpic['inj_vols'],
+		dQ = nitpic['dh'],
+		Cell = {kwargs["cellRef"]:nitpic['CellConc']},
+		Syringe = {kwargs["syringeRef"]:nitpic['SyrConc']},
 		**kwargs)
 
 	if not recalc_concs: # do we overwrite the concentrations we calculated with those in the file?
 		for i in range(experiment.npoints):
-			experiment.Concentrations[i]['M'] = nitpic['Mt'][i]
-			experiment.Concentrations[i]['X'] = nitpic['Xt'][i]
+			experiment.Concentrations[i][kwargs["cellRef"]] = nitpic['Mt'][i]
+			experiment.Concentrations[i][kwargs["syringeRef"]] = nitpic['Xt'][i]
 
 	experiment.initialized = True
+	return experiment
 
+def read_nitpic_exp( file, exp_args={} ):
+	from .itc_experiment import ITCExperimentBase
+
+	pytc_experiment = pytc.experiments.nitpic.NitpicExperiment(
+		dh_file = file,
+		model = pytc.indiv_models.base.ITCModel
+	)
+
+	kwargs = {
+		"skip": [],
+		"dQ_err": pytc_experiment._heats_stdev,
+		"cellRef" : "M", "syringeRef" : "X",
+		"units" : "kcal" ,
+	}
+	kwargs.update(exp_args)
+	
+	experiment = ITCExperimentBase(
+		T = 273.15 + pytc_experiment.temperature,
+		V0 = pytc_experiment.cell_volume,
+		injections = pytc_experiment._shots,
+		dQ = pytc_experiment._heats,
+		Cell = {kwargs["cellRef"]:pytc_experiment.stationary_cell_conc},
+		Syringe = {kwargs["syringeRef"]:pytc_experiment.titrant_syringe_conc},
+		**kwargs)
+
+	experiment.initialized = True
+	return experiment	
+
+def read_origin_exp( file, exp_args={} ):
+	from .itc_experiment import ITCExperimentBase
+
+	pytc_experiment = pytc.experiments.origin.OriginExperiment(
+		dh_file = file,
+		model = pytc.indiv_models.base.ITCModel
+	)
+
+	kwargs = {
+		"skip": [],
+		"dQ_err": pytc_experiment._heats_stdev,
+		"cellRef" : "M", "syringeRef" : "X",
+		"units" : "kcal" ,
+	}
+	kwargs.update(exp_args)
+	
+	experiment = ITCExperimentBase(
+		T = 273.15 + pytc_experiment.temperature,
+		V0 = pytc_experiment.cell_volume,
+		injections = pytc_experiment._shots,
+		dQ = pytc_experiment._heats,
+		Cell = {kwargs["cellRef"]:pytc_experiment.stationary_cell_conc},
+		Syringe = {kwargs["syringeRef"]:pytc_experiment.titrant_syringe_conc},
+		**kwargs)
+
+	experiment.initialized = True
 	return experiment
 	
 def savitzky_golay(y, window_size, order, deriv=0, rate=1):
